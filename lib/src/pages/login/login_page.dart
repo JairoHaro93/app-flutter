@@ -5,26 +5,37 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return Scaffold(
-      backgroundColor: Colors.white, // Asegura fondo blanco por defecto
-      resizeToAvoidBottomInset: true, // Ajusta cuando aparece el teclado
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           _backGround(),
+
+          // Contenido desplazable (logo, campos, etc.)
           SingleChildScrollView(
             padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 20,
+              right: 20,
+              top: 60,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 100,
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _imagen(context),
+                _imagen(context, isKeyboardOpen),
+                const SizedBox(height: 10),
                 _textAppName(),
                 _textFieldUsuario(),
                 _textFieldPassword(),
-                _buttonLogin(),
               ],
             ),
           ),
+
+          // Botón fijo abajo
+          Positioned(bottom: 30, left: 40, right: 40, child: _buttonLogin()),
         ],
       ),
     );
@@ -34,17 +45,18 @@ class LoginPage extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white, // Color de fondo visible siempre
-      alignment: Alignment.center,
+      color: Colors.white,
     );
   }
 
   Widget _buttonLogin() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+    return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
         onPressed: () {},
         child: const Text('LOGIN', style: TextStyle(color: Colors.white)),
       ),
@@ -53,9 +65,8 @@ class LoginPage extends StatelessWidget {
 
   Widget _textFieldUsuario() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: const TextField(
-        keyboardType: TextInputType.text,
         decoration: InputDecoration(
           hintText: "Usuario",
           prefixIcon: Icon(Icons.person),
@@ -66,9 +77,8 @@ class LoginPage extends StatelessWidget {
 
   Widget _textFieldPassword() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: const TextField(
-        keyboardType: TextInputType.text,
         obscureText: true,
         decoration: InputDecoration(
           hintText: "Contraseña",
@@ -79,25 +89,27 @@ class LoginPage extends StatelessWidget {
   }
 
   Widget _textAppName() {
-    return const Text(
-      "REDECOM INTERNO",
-      style: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        color: Colors.black,
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 10),
+      child: Text(
+        "REDECOM INTERNO",
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
       ),
     );
   }
 
-  Widget _imagen(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(top: 20),
-        alignment: Alignment.center,
-        child: Image.asset(
-          'assets/img/logo.png',
-          width: MediaQuery.of(context).size.height * 0.3,
-        ),
+  Widget _imagen(BuildContext context, bool isKeyboardOpen) {
+    return Container(
+      alignment: Alignment.center,
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Image.asset(
+        'assets/img/logo.png',
+        width:
+            MediaQuery.of(context).size.height * (isKeyboardOpen ? 0.15 : 0.3),
       ),
     );
   }
