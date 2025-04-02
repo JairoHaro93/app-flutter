@@ -14,14 +14,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +26,22 @@ class _MyAppState extends State<MyApp> {
       title: "Redecom_App",
       debugShowCheckedModeBanner: false,
       initialRoute: "/",
-      getPages: [
-        GetPage(name: "/", page: ()=> LoginPage())
+      getPages: [GetPage(name: "/", page: () => LoginPage())],
 
-      ],
+      theme: ThemeData(
+        primaryColor: Colors.red,
+        colorScheme: ColorScheme(
+          primary: Colors.red,
+          secondary: Colors.grey,
+          brightness: Brightness.dark,
+          onPrimary: Colors.black,
+          onSecondary: Colors.black,
+          error: Colors.grey,
+          onError: Colors.grey,
+          surface: Colors.red,
+          onSurface: Colors.black,
+        ),
+      ),
       navigatorKey: Get.key,
     );
   }
