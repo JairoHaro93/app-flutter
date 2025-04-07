@@ -53,7 +53,7 @@ class _MyAppState extends State<MyApp> {
           onSecondary: Colors.black,
           error: Colors.grey,
           onError: Colors.grey,
-          surface: Colors.green,
+          surface: Colors.white,
           onSurface: Colors.black,
         ),
       ),

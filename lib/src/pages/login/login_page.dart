@@ -12,7 +12,8 @@ class LoginPage extends StatelessWidget {
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
