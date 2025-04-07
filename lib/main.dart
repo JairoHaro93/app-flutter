@@ -1,8 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:redecom_app/src/models/user.dart';
+import 'package:redecom_app/src/pages/home/home_page.dart';
 import 'package:redecom_app/src/pages/login/login_page.dart';
 
-void main() {
+late User userSession;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GetStorage.init();
+
+  final userData = GetStorage().read('user');
+  if (userData is Map<String, dynamic> && userData.isNotEmpty) {
+    userSession = User.fromJson(userData);
+  } else {
+    userSession = User(); // crea usuario vacío si no hay sesión
+  }
+
   runApp(const MyApp());
 }
 
@@ -15,22 +30,22 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    print('Usuario id: ${userSession.id}');
     return GetMaterialApp(
       title: "Redecom_App",
       debugShowCheckedModeBanner: false,
-      initialRoute: "/",
-      getPages: [GetPage(name: "/", page: () => LoginPage())],
+
+      initialRoute: userSession.id != null ? "/home" : "/",
+
+      getPages: [
+        GetPage(name: "/", page: () => LoginPage()),
+        GetPage(name: "/home", page: () => HomePage()),
+      ],
 
       theme: ThemeData(
-        primaryColor: Colors.red,
-        colorScheme: ColorScheme(
+        primaryColor: Colors.blue,
+        colorScheme: const ColorScheme(
           primary: Colors.red,
           secondary: Colors.grey,
           brightness: Brightness.dark,
@@ -38,7 +53,7 @@ class _MyAppState extends State<MyApp> {
           onSecondary: Colors.black,
           error: Colors.grey,
           onError: Colors.grey,
-          surface: Colors.red,
+          surface: Colors.green,
           onSurface: Colors.black,
         ),
       ),

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:redecom_app/src/pages/login/login_controller.dart';
 
 class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+  LoginController con = Get.put(LoginController());
+
+  LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +61,7 @@ class LoginPage extends StatelessWidget {
           backgroundColor: Colors.red,
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-        onPressed: () {},
+        onPressed: () => con.login(),
         child: const Text('LOGIN', style: TextStyle(color: Colors.white)),
       ),
     );
@@ -66,8 +70,9 @@ class LoginPage extends StatelessWidget {
   Widget _textFieldUsuario() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
-      child: const TextField(
-        decoration: InputDecoration(
+      child: TextField(
+        controller: con.usuarioController,
+        decoration: const InputDecoration(
           hintText: "Usuario",
           prefixIcon: Icon(Icons.person),
         ),
@@ -78,9 +83,10 @@ class LoginPage extends StatelessWidget {
   Widget _textFieldPassword() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
-      child: const TextField(
+      child: TextField(
+        controller: con.passwordController,
         obscureText: true,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           hintText: "Contraseña",
           prefixIcon: Icon(Icons.lock),
         ),
