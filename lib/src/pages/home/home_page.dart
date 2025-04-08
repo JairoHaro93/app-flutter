@@ -24,31 +24,27 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         toolbarHeight: 80,
         title: const Text('Menu', style: TextStyle(color: Colors.black)),
-        actions: [
-          _backbutton(),
-          /*
-          GestureDetector(
-            onTap: () => con.gotoPerilInfoPage(),
-            child: Container(
-              margin: const EdgeInsets.only(right: 15),
-              child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 25,
-                  backgroundImage: NetworkImage(con.user.imagen ?? '')),
-            ),
-          ),*/
-        ],
+        actions: [_backbutton()],
       ),
       body: Container(
         margin: EdgeInsets.symmetric(
           vertical: MediaQuery.of(context).size.height * 0.05,
+          horizontal: 15,
         ),
-        // Aquí puedes agregar el contenido principal del body
-        child: Center(
-          child: ElevatedButton(
-            onPressed: () => con.signOut(),
-            child: const Text("Cerrar sesión"),
-          ),
+        child: GridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.85,
+          children:
+              con.opcionesVisibles.entries
+                  .expand(
+                    (entry) => entry.value.map((opcion) {
+                      final areaKey = entry.key;
+                      return _cardOpcion(areaKey, opcion);
+                    }),
+                  )
+                  .toList(),
         ),
       ),
     );
@@ -112,6 +108,45 @@ class HomePage extends StatelessWidget {
           style: const ButtonStyle(
             backgroundColor: WidgetStatePropertyAll(Colors.white),
             iconColor: WidgetStatePropertyAll(Colors.black),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardOpcion(String area, String opcion) {
+    return GestureDetector(
+      onTap: () => con.gotoOpcion(opcion),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                height: 70,
+                width: 70,
+                child: Image.asset(
+                  'assets/img/$opcion.png',
+                  fit: BoxFit.contain,
+                  errorBuilder:
+                      (context, error, stackTrace) =>
+                          const Icon(Icons.image_not_supported, size: 50),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                opcion,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
         ),
       ),
