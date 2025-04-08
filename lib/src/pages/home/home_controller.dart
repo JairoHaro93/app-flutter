@@ -13,6 +13,7 @@ class HomeController extends GetxController {
   List<String> arrRecuperacion = [];
   Map<String, List<String>> opcionesVisibles = {};
 
+  //ARRAY DONDE SE CREAN LAS OPCIONES DE FUNCIONES PARA LA APP
   final Map<String, List<String>> funcionesVisiblesFlutter = {
     'NOC': [],
     'Admin': [],

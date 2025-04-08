@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:get/instance_manager.dart';
 import 'package:redecom_app/src/pages/home/home_controller.dart';
 
@@ -35,15 +36,11 @@ class HomePage extends StatelessWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.85,
+          childAspectRatio: 0.9,
           children:
               con.opcionesVisibles.entries
-                  .expand(
-                    (entry) => entry.value.map((opcion) {
-                      final areaKey = entry.key;
-                      return _cardOpcion(areaKey, opcion);
-                    }),
-                  )
+                  .where((entry) => entry.value.isNotEmpty)
+                  .map((entry) => _cardArea(entry.key, entry.value))
                   .toList(),
         ),
       ),
@@ -148,6 +145,77 @@ class HomePage extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarOpcionesDeArea(String area, List<String> funciones) {
+    showModalBottomSheet(
+      context: Get.context!,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Center(
+              child: Text(
+                'Opciones de $area',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Divider(),
+            ...funciones.map((opcion) {
+              return ListTile(
+                leading: const Icon(Icons.arrow_forward_ios),
+                title: Text(opcion),
+                onTap: () {
+                  Get.back(); // cerrar el modal
+                  con.gotoOpcion(opcion); // navegar
+                },
+              );
+            }).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _cardArea(String area, List<String> funciones) {
+    return GestureDetector(
+      onTap: () => _mostrarOpcionesDeArea(area, funciones),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 70,
+              width: 70,
+              child: Image.asset(
+                'assets/img/$area.png',
+                fit: BoxFit.contain,
+                errorBuilder:
+                    (context, error, stackTrace) =>
+                        const Icon(Icons.dashboard, size: 50),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              area,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );
