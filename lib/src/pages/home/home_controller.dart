@@ -25,4 +25,8 @@ class HomeController extends GetxController {
       (route) => false,
     ); //Elimina el historial de pantallas
   }
+
+  void gotoPerilInfoPage() {
+    Get.toNamed('/home/perfil/info');
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/instance_manager.dart';
 import 'package:redecom_app/src/pages/home/home_controller.dart';
@@ -78,7 +80,10 @@ class HomePage extends StatelessWidget {
     return Container(
       color: Colors.red,
       width: double.infinity,
-      child: ElevatedButton(onPressed: () {}, child: const Text('Mi Perfil')),
+      child: ElevatedButton(
+        onPressed: () => con.gotoPerilInfoPage(),
+        child: const Text('Mi Perfil'),
+      ),
     );
   }
 
@@ -101,7 +106,7 @@ class HomePage extends StatelessWidget {
     return SafeArea(
       child: Container(
         child: FilledButton.icon(
-          onPressed: () => con.signOut(),
+          onPressed: () => exit(0),
           icon: const Icon(Icons.arrow_back),
           label: const Text('SALIR', style: TextStyle(color: Colors.black)),
           style: const ButtonStyle(

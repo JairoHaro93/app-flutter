@@ -9,114 +9,100 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Column(children: [_imgLogo(), _txt1(), _boxForm(context)]),
+      ),
+      bottomNavigationBar: SizedBox(height: 50, child: _txt2()),
+    );
+  }
 
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          _backGround(),
-
-          // Contenido desplazable (logo, campos, etc.)
-          SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 60,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 100,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _imagen(context, isKeyboardOpen),
-                const SizedBox(height: 10),
-                _textAppName(),
-                _textFieldUsuario(),
-                _textFieldPassword(),
-              ],
-            ),
-          ),
-
-          // Botón fijo abajo
-          Positioned(bottom: 30, left: 40, right: 40, child: _buttonLogin()),
-        ],
+  // Imagen Logo
+  Widget _imgLogo() {
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.only(top: 20),
+        alignment: Alignment.center,
+        width: 200,
+        height: 200,
+        child: Image.asset('assets/img/logo.png'),
       ),
     );
   }
 
-  Widget _backGround() {
+  Widget _boxForm(BuildContext context) {
     return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Colors.white,
+      margin: const EdgeInsets.only(top: 60, left: 70, right: 70),
+      //height: MediaQuery.of(context).size.height * 0.45,
+      child: Column(children: [_txtfldEmail(), _txtfldPassword(), _btnLogin()]),
     );
   }
 
-  Widget _buttonLogin() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-        onPressed: () => con.login(),
-        child: const Text('LOGIN', style: TextStyle(color: Colors.white)),
+  Widget _txtfldEmail() {
+    return TextField(
+      controller: con.usuarioController,
+      style: const TextStyle(color: Colors.black, fontSize: 18),
+      keyboardType: TextInputType.emailAddress,
+      decoration: const InputDecoration(
+        hintText: 'Usuario',
+        prefixIcon: Icon(Icons.person),
       ),
     );
   }
 
-  Widget _textFieldUsuario() {
+  Widget _txtfldPassword() {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      child: TextField(
-        controller: con.usuarioController,
-        decoration: const InputDecoration(
-          hintText: "Usuario",
-          prefixIcon: Icon(Icons.person),
-        ),
-      ),
-    );
-  }
-
-  Widget _textFieldPassword() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 20),
       child: TextField(
         controller: con.passwordController,
+        style: const TextStyle(color: Colors.black, fontSize: 18),
+        keyboardType: TextInputType.text,
         obscureText: true,
         decoration: const InputDecoration(
-          hintText: "Contraseña",
+          hintText: 'Contraseña',
           prefixIcon: Icon(Icons.lock),
         ),
       ),
     );
   }
 
-  Widget _textAppName() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 10),
-      child: Text(
-        "REDECOM INTERNO",
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
+  Widget _btnLogin() {
+    return Container(
+      width: 200,
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: ElevatedButton(
+        onPressed: () => con.login(),
+        child: const Text(
+          'Iniciar Sesion',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
         ),
       ),
     );
   }
 
-  Widget _imagen(BuildContext context, bool isKeyboardOpen) {
-    return Container(
-      alignment: Alignment.center,
-      margin: const EdgeInsets.only(bottom: 20),
-      child: Image.asset(
-        'assets/img/logo.png',
-        width:
-            MediaQuery.of(context).size.height * (isKeyboardOpen ? 0.15 : 0.3),
+  // Texto 1
+  Widget _txt1() {
+    return const Text(
+      'INTERNO',
+      style: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    );
+  }
+
+  // Texto 1
+  Widget _txt2() {
+    return const Center(
+      child: Text(
+        ' REDECOM Marca Registrada 2025',
+        style: TextStyle(color: Colors.red),
       ),
     );
   }
