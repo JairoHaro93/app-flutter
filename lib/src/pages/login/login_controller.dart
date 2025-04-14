@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -41,18 +42,34 @@ class LoginController extends GetxController {
 
       goToHomePage();
     } else {
-      Get.snackbar('Login Fallido', responseApi.message ?? 'Error desconocido');
+      Get.snackbar(
+        'Login Fallido',
+        responseApi.message ?? 'Error desconocido',
+        backgroundColor: Colors.amber,
+        colorText: Colors.white,
+      );
     }
   }
 
   Future<bool> isValidForm(String usuario, String password) async {
     if (usuario.isEmpty) {
-      Get.snackbar('Formulario inválido', 'Ingresa el usuario');
+      Get.snackbar(
+        'Formulario inválido',
+        'Ingresa el usuario',
+        backgroundColor: Colors.amber,
+        colorText: Colors.white,
+      );
       return false;
     }
 
     if (password.isEmpty) {
-      Get.snackbar('Formulario inválido', 'Ingresa la contraseña');
+      Get.snackbar(
+        'Formulario inválido',
+        'Ingresa la contraseña',
+        backgroundColor: Colors.amber,
+        colorText: Colors.white,
+      );
+
       return false;
     }
 

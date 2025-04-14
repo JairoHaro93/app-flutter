@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/response_api.dart';
@@ -16,7 +17,12 @@ class LoginProvider extends GetConnect {
     print(url);
 
     if (response.body == null) {
-      Get.snackbar('Eror', 'No se pudo ejecutar la pericion');
+      Get.snackbar(
+        'Eror',
+        'No se pudo ejecutar la pericion',
+        backgroundColor: Colors.amber,
+        colorText: Colors.white,
+      );
       return ResponseApi();
     }
 

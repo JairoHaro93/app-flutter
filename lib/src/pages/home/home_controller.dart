@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/models/user.dart';
@@ -127,7 +128,12 @@ class HomeController extends GetxController {
         break;
       // Agrega más según tus rutas
       default:
-        Get.snackbar('Aviso', 'Función no implementada: $opcion');
+        Get.snackbar(
+          'Aviso',
+          'Función no implementada: $opcion',
+          backgroundColor: Colors.amber,
+          colorText: Colors.white,
+        );
     }
   }
 }
