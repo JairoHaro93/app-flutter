@@ -4,30 +4,39 @@ import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/response_api.dart';
 
 class LoginProvider extends GetConnect {
-  String url = "${Environment.API_URL}login/app";
+  final String _url = "${Environment.API_URL}login";
 
   Future<ResponseApi> login(String usuario, String password) async {
-    Response response = await post(
-      url,
+    return await _postRequest('$_url/app', {
+      'usuario': usuario,
+      'password': password,
+    });
+  }
 
-      {'usuario': usuario, 'password': password},
+  Future<ResponseApi> logout(int usuarioId) async {
+    return await _postRequest('$_url/notapp', {'usuario_id': usuarioId});
+  }
+
+  Future<ResponseApi> _postRequest(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    final Response response = await post(
+      endpoint,
+      body,
       headers: {'Content-Type': 'application/json'},
     );
 
-    print(url);
-
     if (response.body == null) {
       Get.snackbar(
-        'Eror',
-        'No se pudo ejecutar la pericion',
+        'Error',
+        'No se pudo ejecutar la petición',
         backgroundColor: Colors.amber,
         colorText: Colors.white,
       );
       return ResponseApi();
     }
 
-    ResponseApi responseApi = ResponseApi.fromJson(response.body);
-
-    return responseApi;
+    return ResponseApi.fromJson(response.body);
   }
 }

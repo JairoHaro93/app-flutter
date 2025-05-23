@@ -20,22 +20,26 @@ class LoginController extends GetxController {
 
     if (!await isValidForm(usuario, password)) return;
 
-    // Hacemos la petición al backend
     ResponseApi responseApi = await loginProvider.login(usuario, password);
-    print('Respuesta del backend: ${responseApi.toJson()}');
+    debugPrint('Respuesta del backend: ${responseApi.toJson()}');
 
-    if (responseApi.message == "Login Correcto") {
+    if (responseApi.success == true) {
       String token = responseApi.token ?? '';
 
-      // Decodificamos el JWT
-      Map<String, dynamic> decodedToken = Jwt.parseJwt(token);
-      print('Datos decodificados del token: $decodedToken');
+      if (Jwt.isExpired(token)) {
+        Get.snackbar(
+          'Token inválido',
+          'Tu sesión ha expirado, vuelve a iniciar sesión',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
 
-      // Creamos el User desde el token
+      Map<String, dynamic> decodedToken = Jwt.parseJwt(token);
       User user = User.fromJson(decodedToken);
       user.sessionToken = token;
 
-      // Guardamos el token y el usuario en local
       final storage = GetStorage();
       storage.write('token', token);
       storage.write('user', user.toJson());

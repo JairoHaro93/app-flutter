@@ -9,30 +9,10 @@ class PerfilInfoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        //   toolbarHeight: 100,
-        // leading: _backbutton(),
-        leading: _backbuttonAppBar(),
-        actions: [
-          _logOutButton(),
-          // _backbutton(),
-        ],
-      ),
+      appBar: AppBar(leading: _backbuttonAppBar(), actions: [_logOutButton()]),
       body: Stack(
         children: [
-          Center(
-            child: Column(
-              children: [
-                // _imageCover(),
-                _textName(),
-                _textEmail(),
-                //     _textPhone(),
-                //   _textCI(),
-                //   _textfechaNacimiento(),
-                //    _textGenero(),
-              ],
-            ),
-          ),
+          Center(child: Column(children: [_textName(), _textEmail()])),
         ],
       ),
     );
@@ -73,81 +53,9 @@ class PerfilInfoPage extends StatelessWidget {
       ),
     );
   }
-  /*
-  Widget _textPhone() {
-    return Container(
-      margin: EdgeInsets.only(top: 0),
-      child: ListTile(
-        leading: Icon(Icons.phone),
-        title: Text('Telefono'),
-        subtitle: Text(con.user.telefono ?? ''),
-      ),
-    );
-  }
-*/
-  /*
-  Widget _textCI() {
-    return Container(
-      margin: EdgeInsets.only(top: 0),
-      child: ListTile(
-        leading: Icon(Icons.person),
-        title: Text('Cedula'),
-        subtitle: Text(con.user.cedula ?? ''),
-      ),
-    );
-  }
-*/
-
-  /*
-  Widget _textfechaNacimiento() {
-    var fecha = con.user.fecha_nacimiento ?? '';
-    // var fecha2 = DateTime.parse(fecha);
-    return Container(
-      margin: EdgeInsets.only(top: 0),
-      child: ListTile(
-        leading: Icon(Icons.calendar_today),
-        title: Text('Fecha de Nacimiento'),
-        subtitle: Text((fecha)),
-      ),
-    );
-  }
-*/
-  /*
-  Widget _textGenero() {
-    return Container(
-      margin: EdgeInsets.only(top: 0),
-      child: ListTile(
-        leading: Icon(Icons.person),
-        title: Text('Genero'),
-        subtitle: Text((con.user.genero ?? '')),
-      ),
-    );
-  }
-*/
-  /*
-  //Privado Imagen LOGO
-  Widget _imageCover() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(top: 30, bottom: 20),
-        child: CircleAvatar(
-          backgroundColor: Colors.white,
-          radius: 60,
-          backgroundImage:
-              con.user.imagen != null
-                  ? NetworkImage(con.user.imagen!)
-                  : AssetImage('assets/img/user.png') as ImageProvider,
-        ),
-      ),
-    );
-  }
-*/
 
   Widget _logOutButton() {
     return Container(
-      //alignment: Alignment.topLeft,
-      // alignment: Alignment.center,
-      //  alignment: Alignment(0, 0),
       child: FilledButton.icon(
         onPressed: () => con.signOut(),
         icon: const Icon(Icons.power_settings_new),

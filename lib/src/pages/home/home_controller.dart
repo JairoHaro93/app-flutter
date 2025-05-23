@@ -115,25 +115,25 @@ class HomeController extends GetxController {
     Get.toNamed('/home/perfil/info');
   }
 
+  final Map<String, String> rutasPorOpcion = {
+    'Mi Agenda': '/tecnico/mi-agenda',
+    'Registro Soporte': '/tecnico/soporte',
+    'Mapa Morosos': '/recuperacion/mapa',
+    'Inventario': '/bodega/inventario',
+    'Usuarios': '/admin/usuarios',
+  };
+
   void gotoOpcion(String opcion) {
-    switch (opcion) {
-      case 'Agenda':
-        Get.toNamed('/noc/agenda');
-        break;
-      case 'Soporte Tecnico':
-        Get.toNamed('/noc/soporte');
-        break;
-      case 'Usuarios':
-        Get.toNamed('/admin/usuarios');
-        break;
-      // Agrega más según tus rutas
-      default:
-        Get.snackbar(
-          'Aviso',
-          'Función no implementada: $opcion',
-          backgroundColor: Colors.amber,
-          colorText: Colors.white,
-        );
+    final ruta = rutasPorOpcion[opcion];
+    if (ruta != null) {
+      Get.toNamed(ruta);
+    } else {
+      Get.snackbar(
+        'Aviso',
+        'Función no implementada: $opcion',
+        backgroundColor: Colors.amber,
+        colorText: Colors.white,
+      );
     }
   }
 }
