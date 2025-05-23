@@ -11,7 +11,7 @@ class LoginProvider extends GetConnect {
       url,
 
       {'usuario': usuario, 'password': password},
-      headers: {'Contet-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json'},
     );
 
     print(url);
