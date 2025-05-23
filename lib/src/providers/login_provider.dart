@@ -4,7 +4,7 @@ import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/response_api.dart';
 
 class LoginProvider extends GetConnect {
-  String url = "${Environment.API_URL}login";
+  String url = "${Environment.API_URL}login/app";
 
   Future<ResponseApi> login(String usuario, String password) async {
     Response response = await post(

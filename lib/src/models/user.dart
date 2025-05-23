@@ -1,5 +1,5 @@
 class User {
-  String? id;
+  int? id;
   String? username;
   String? name;
   List<String>? roles;
