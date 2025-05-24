@@ -28,4 +28,30 @@ class AgendaProvider extends GetConnect {
       throw Exception('❌ [${response.statusCode}] $errorMsg');
     }
   }
+
+  Future<void> actualizarAgendaSolucion(int age_id, Trabajo trabajo) async {
+    final token = GetStorage().read('token');
+
+    final response = await put(
+      '$_urlBase/edita-sol/$age_id',
+      trabajo.toSolucionJson(),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print('📡 PUT trabajo CONCLUIDO: $_urlBase/edita-sol/$age_id');
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
+
+    if (response.statusCode! < 200 || response.statusCode! >= 300) {
+      print('❌ PUT falló: ${response.statusCode}');
+      final message =
+          response.body is Map && response.body?['message'] != null
+              ? response.body['message']
+              : 'Error al actualizar solución';
+      throw Exception('❌ [$response.statusCode] $message');
+    }
+  }
 }

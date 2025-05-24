@@ -1,10 +1,108 @@
 import 'package:flutter/material.dart';
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:get/get.dart';
+import 'package:redecom_app/src/pages/mi%20agenda/detalle_trabajo_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class DetalleTrabajoPage extends StatelessWidget {
+import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/pages/mi%20agenda/editar_trabajo_page.dart';
+
+class DetalleTrabajoPage extends StatefulWidget {
   final Trabajo trabajo;
 
   const DetalleTrabajoPage({super.key, required this.trabajo});
+
+  @override
+  State<DetalleTrabajoPage> createState() => _DetalleTrabajoPageState();
+}
+
+class _DetalleTrabajoPageState extends State<DetalleTrabajoPage> {
+  late final DetalleTrabajoController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(DetalleTrabajoController());
+    controller.verDetalle(widget.trabajo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Detalle del Trabajo')),
+      body: Obx(() {
+        if (controller.trabajoDetalle.value == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final detalle = controller.trabajoDetalle.value!;
+
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  children: [
+                    _info('ID', '${detalle.id}'),
+                    _info('Cliente', detalle.clienteNombre),
+                    _info('Teléfono', detalle.telefono),
+                    _info('Registrado por', detalle.registradoPorNombre),
+                    _info('Estado', detalle.estado),
+                    _info(
+                      'Fecha de Registro',
+                      formatFecha(detalle.fechaRegistro),
+                    ),
+                    _info(
+                      'Fecha de Aceptación',
+                      formatFecha(detalle.fechaAcepta),
+                    ),
+                    _info('Observaciones', detalle.observaciones),
+                    _info('Solución', detalle.solucionDetalle),
+                    ListTile(
+                      title: const Text('Coordenadas del trabajo:'),
+                      subtitle: GestureDetector(
+                        onTap:
+                            () =>
+                                _abrirEnGoogleMaps(widget.trabajo.coordenadas),
+                        child: Text(
+                          widget.trabajo.coordenadas,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Get.to(
+                    () => const EditarTrabajoPage(),
+                    arguments: widget.trabajo,
+                  );
+                  if (result == true) {
+                    controller.verDetalle(widget.trabajo); // recarga
+                    Get.snackbar(
+                      'Éxito',
+                      '✅ Trabajo actualizado correctamente',
+                    );
+                  }
+                },
+                icon: const Icon(Icons.edit),
+                label: const Text('EDITAR'),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _info(String label, String value) {
+    return ListTile(title: Text('$label:'), subtitle: Text(value));
+  }
 
   String formatFecha(String rawFecha) {
     final date = DateTime.tryParse(rawFecha);
@@ -12,65 +110,26 @@ class DetalleTrabajoPage extends StatelessWidget {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detalle del Trabajo')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            ListTile(title: const Text('ID:'), subtitle: Text('${trabajo.id}')),
-            ListTile(title: const Text('Tipo:'), subtitle: Text(trabajo.tipo)),
-            ListTile(
-              title: const Text('Subtipo:'),
-              subtitle: Text(trabajo.subtipo),
-            ),
-            ListTile(
-              title: const Text('Estado:'),
-              subtitle: Text(trabajo.estado),
-            ),
-            ListTile(
-              title: const Text('Orden instalación:'),
-              subtitle: Text(trabajo.ordenInstalacion),
-            ),
-            ListTile(
-              title: const Text('Soporte ID:'),
-              subtitle: Text(trabajo.soporteId),
-            ),
-            ListTile(
-              title: const Text('Fecha y Hora:'),
-              subtitle: Text(
-                '${formatFecha(trabajo.fecha)} de ${trabajo.horaInicio} a ${trabajo.horaFin}',
-              ),
-            ),
-            ListTile(
-              title: const Text('Vehículo:'),
-              subtitle: Text(trabajo.vehiculo),
-            ),
-            ListTile(
-              title: const Text('Técnico:'),
-              subtitle: Text(trabajo.tecnico),
-            ),
-            ListTile(
-              title: const Text('Teléfono:'),
-              subtitle: Text(trabajo.telefono),
-            ),
-            ListTile(
-              title: const Text('Coordenadas:'),
-              subtitle: Text(trabajo.coordenadas),
-            ),
-            ListTile(
-              title: const Text('Observaciones:'),
-              subtitle: Text(trabajo.observaciones),
-            ),
-            ListTile(
-              title: const Text('Solución:'),
-              subtitle: Text(trabajo.solucion ?? 'Sin registrar'),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _abrirEnGoogleMaps(String coordenadas) async {
+    final parts = coordenadas.split(',');
+    if (parts.length >= 2) {
+      final lat = parts[0].trim();
+      final lng = parts[1].trim();
+      final uri = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        final webUri = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+        );
+        if (await canLaunchUrl(webUri)) {
+          await launchUrl(webUri, mode: LaunchMode.externalApplication);
+        } else {
+          Get.snackbar('Error', 'No se pudo abrir Google Maps');
+        }
+      }
+    } else {
+      Get.snackbar('Error', 'Coordenadas no válidas');
+    }
   }
 }

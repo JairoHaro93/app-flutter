@@ -13,7 +13,7 @@ class Trabajo {
   final String observaciones;
   final String coordenadas;
   final String telefono;
-  final String? solucion; // puede ser null
+  final String? solucion;
 
   Trabajo({
     required this.id,
@@ -48,6 +48,52 @@ class Trabajo {
     observaciones: json['age_observaciones'] ?? '',
     coordenadas: json['age_coordenadas'] ?? '',
     telefono: json['age_telefono'] ?? '',
-    solucion: json['age_solucion'], // puede ser null
+    solucion: json['age_solucion'],
   );
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'age_tipo': tipo,
+      'age_subtipo': subtipo,
+      'age_estado': estado,
+      'age_ord_ins': ordenInstalacion,
+      'age_id_sop': soporteId,
+      'age_hora_inicio': horaInicio,
+      'age_hora_fin': horaFin,
+      'age_fecha': fecha,
+      'age_vehiculo': vehiculo,
+      'age_tecnico': tecnico,
+      'age_observaciones': observaciones,
+      'age_coordenadas': coordenadas,
+      'age_telefono': telefono,
+      'age_solucion': solucion,
+    };
+  }
+
+  Trabajo copyWith({String? estado, String? solucion}) {
+    return Trabajo(
+      id: id,
+      tipo: tipo,
+      subtipo: subtipo,
+      estado: estado ?? this.estado,
+      ordenInstalacion: ordenInstalacion,
+      soporteId: soporteId,
+      horaInicio: horaInicio,
+      horaFin: horaFin,
+      fecha: fecha,
+      vehiculo: vehiculo,
+      tecnico: tecnico,
+      observaciones: observaciones,
+      coordenadas: coordenadas,
+      telefono: telefono,
+      solucion: solucion ?? this.solucion,
+    );
+  }
+}
+
+extension TrabajoSolucionJson on Trabajo {
+  Map<String, dynamic> toSolucionJson() {
+    return {'age_id': id, 'age_estado': estado, 'age_solucion': solucion};
+  }
 }
