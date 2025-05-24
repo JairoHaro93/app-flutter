@@ -27,7 +27,7 @@ class MiAgendaPage extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: ListTile(
                 leading: const Icon(Icons.work_outline),
-                title: Text('Soporte ID: ${trabajo.soporteId}'),
+                title: Text('${trabajo.tipo}  ${trabajo.subtipo}'),
                 subtitle: Text(
                   '${formatFecha(trabajo.fecha)} | ${trabajo.horaInicio} - ${trabajo.horaFin}',
                 ),
@@ -43,5 +43,12 @@ class MiAgendaPage extends StatelessWidget {
     );
   }
 
-  formatFecha(String fecha) {}
+  String formatFecha(String fecha) {
+    try {
+      final date = DateTime.parse(fecha);
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    } catch (e) {
+      return fecha; // Si el parse falla, muestra el valor original
+    }
+  }
 }
