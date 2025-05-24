@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/trabajo.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
@@ -24,7 +25,7 @@ class EditarTrabajoController extends GetxController {
   }
 
   void _initSocket() {
-    socket = IO.io('http://192.168.0.181:3000', <String, dynamic>{
+    socket = IO.io(Environment.API_WEBSOKETS, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
     });
