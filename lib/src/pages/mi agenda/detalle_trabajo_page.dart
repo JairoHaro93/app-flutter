@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/detalle_trabajo_controller.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:redecom_app/src/models/trabajo.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/editar_trabajo_page.dart';
 
@@ -29,7 +28,13 @@ class _DetalleTrabajoPageState extends State<DetalleTrabajoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle del Trabajo')),
+      appBar: AppBar(
+        title: const Text('Detalle del Trabajo'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.offAllNamed('/tecnico/mi-agenda'),
+        ),
+      ),
       body: Obx(() {
         if (controller.trabajoDetalle.value == null) {
           return const Center(child: CircularProgressIndicator());

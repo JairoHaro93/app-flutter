@@ -72,6 +72,8 @@ class MiAgendaController extends GetxController {
       if (nuevos.isNotEmpty) {
         SnackbarService.success('📥 Se ha recibido un nuevo trabajo');
       } else if (eliminados.isNotEmpty) {
+        Get.offAllNamed('/home');
+
         SnackbarService.warning('📤 Se ha eliminado un trabajo de tu agenda');
       }
     } catch (e) {

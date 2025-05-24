@@ -56,7 +56,7 @@ class EditarTrabajoController extends GetxController {
 
       socket.emit('trabajoCulminado');
 
-      Get.offAllNamed('/tecnico/mi-agenda');
+      Get.offAllNamed('/home');
     } catch (e) {
       SnackbarService.error('❌ No se pudo guardar la solución');
     } finally {

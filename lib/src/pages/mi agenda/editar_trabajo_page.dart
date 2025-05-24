@@ -10,7 +10,13 @@ class EditarTrabajoPage extends StatelessWidget {
     final controller = Get.put(EditarTrabajoController());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Solución')),
+      appBar: AppBar(
+        title: const Text('Editar Solución'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.offAllNamed('/tecnico/mi-agenda'),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
