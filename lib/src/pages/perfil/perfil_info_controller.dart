@@ -3,6 +3,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/models/response_api.dart';
 import 'package:redecom_app/src/models/user.dart';
 import 'package:redecom_app/src/providers/login_provider.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class PerfilInfoController extends GetxController {
   User user = User.fromJson(GetStorage().read('user'));
@@ -17,12 +18,7 @@ class PerfilInfoController extends GetxController {
       GetStorage().remove('user');
       Get.offNamedUntil('/', (route) => false); // Redirige y limpia historial
     } else {
-      Get.snackbar(
-        'Error',
-        'No se pudo cerrar la sesión',
-        backgroundColor: Get.theme.colorScheme.errorContainer,
-        colorText: Get.theme.colorScheme.onErrorContainer,
-      );
+      SnackbarService.error('No se pudo cerrar la sesión');
     }
   }
 

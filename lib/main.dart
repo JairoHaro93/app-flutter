@@ -55,7 +55,7 @@ class _MyAppState extends State<MyApp> {
           brightness: Brightness.dark,
           onPrimary: Colors.black,
           onSecondary: Colors.black,
-          error: Colors.grey,
+          error: Color.fromARGB(255, 187, 25, 25),
           onError: Colors.grey,
           surface: Colors.white,
           onSurface: Colors.black,

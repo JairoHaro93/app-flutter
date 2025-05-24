@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:redecom_app/src/models/trabajo.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/material.dart';
 
@@ -34,8 +34,9 @@ class EditarTrabajoController extends GetxController {
   Future<void> guardarSolucion() async {
     final solucion = solucionController.text.trim();
 
-    if (trabajo.id == null || solucion.isEmpty) {
-      Get.snackbar('Campo obligatorio', 'Ingresa una solución');
+    if (solucion.isEmpty) {
+      SnackbarService.warning('Ingresa una solución');
+
       return;
     }
 
@@ -55,9 +56,8 @@ class EditarTrabajoController extends GetxController {
       socket.emit('trabajoCulminado');
 
       Get.offAllNamed('/tecnico/mi-agenda');
-      //Get.snackbar('Éxito', '✅ Trabajo actualizado correctamente');
     } catch (e) {
-      Get.snackbar('Error', '❌ No se pudo guardar la solución');
+      SnackbarService.error('❌ No se pudo guardar la solución');
     } finally {
       isSaving.value = false;
     }

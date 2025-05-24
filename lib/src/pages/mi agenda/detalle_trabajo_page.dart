@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/detalle_trabajo_controller.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:redecom_app/src/models/trabajo.dart';
@@ -84,8 +85,7 @@ class _DetalleTrabajoPageState extends State<DetalleTrabajoPage> {
                   );
                   if (result == true) {
                     controller.verDetalle(widget.trabajo); // recarga
-                    Get.snackbar(
-                      'Éxito',
+                    SnackbarService.success(
                       '✅ Trabajo actualizado correctamente',
                     );
                   }
@@ -125,11 +125,11 @@ class _DetalleTrabajoPageState extends State<DetalleTrabajoPage> {
         if (await canLaunchUrl(webUri)) {
           await launchUrl(webUri, mode: LaunchMode.externalApplication);
         } else {
-          Get.snackbar('Error', 'No se pudo abrir Google Maps');
+          SnackbarService.error('No se pudo abrir Google Maps');
         }
       }
     } else {
-      Get.snackbar('Error', 'Coordenadas no válidas');
+      SnackbarService.error('Coordenadas no válidas');
     }
   }
 }

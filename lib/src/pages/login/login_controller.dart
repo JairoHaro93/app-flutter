@@ -7,6 +7,7 @@ import 'package:jwt_decode/jwt_decode.dart';
 import 'package:redecom_app/src/models/response_api.dart';
 import 'package:redecom_app/src/models/user.dart';
 import 'package:redecom_app/src/providers/login_provider.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class LoginController extends GetxController {
   TextEditingController usuarioController = TextEditingController();
@@ -27,12 +28,7 @@ class LoginController extends GetxController {
       String token = responseApi.token ?? '';
 
       if (Jwt.isExpired(token)) {
-        Get.snackbar(
-          'Token inválido',
-          'Tu sesión ha expirado, vuelve a iniciar sesión',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        SnackbarService.error('Tu sesión ha expirado, vuelve a iniciar sesión');
         return;
       }
 
@@ -46,33 +42,19 @@ class LoginController extends GetxController {
 
       goToHomePage();
     } else {
-      Get.snackbar(
-        'Login Fallido',
-        responseApi.message ?? 'Error desconocido',
-        backgroundColor: Colors.amber,
-        colorText: Colors.white,
-      );
+      SnackbarService.warning(responseApi.message ?? 'Error desconocido');
     }
   }
 
   Future<bool> isValidForm(String usuario, String password) async {
     if (usuario.isEmpty) {
-      Get.snackbar(
-        'Formulario inválido',
-        'Ingresa el usuario',
-        backgroundColor: Colors.amber,
-        colorText: Colors.white,
-      );
+      SnackbarService.warning('Ingresa el usuario');
+
       return false;
     }
 
     if (password.isEmpty) {
-      Get.snackbar(
-        'Formulario inválido',
-        'Ingresa la contraseña',
-        backgroundColor: Colors.amber,
-        colorText: Colors.white,
-      );
+      SnackbarService.warning('Ingresa la contraseña');
 
       return false;
     }

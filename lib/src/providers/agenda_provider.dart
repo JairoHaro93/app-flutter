@@ -17,8 +17,6 @@ class AgendaProvider extends GetConnect {
       },
     );
 
-    print('📡 GET trabajos agendados: $_urlBase/mis-trabajos-tec/$tecnicoId');
-
     if (response.statusCode == 200 && response.body != null) {
       List<dynamic> body = response.body;
       return body.map((item) => Trabajo.fromJson(item)).toList();
@@ -29,11 +27,11 @@ class AgendaProvider extends GetConnect {
     }
   }
 
-  Future<void> actualizarAgendaSolucion(int age_id, Trabajo trabajo) async {
+  Future<void> actualizarAgendaSolucion(int ageId, Trabajo trabajo) async {
     final token = GetStorage().read('token');
 
     final response = await put(
-      '$_urlBase/edita-sol/$age_id',
+      '$_urlBase/edita-sol/$ageId',
       trabajo.toSolucionJson(),
       headers: {
         'Authorization': 'Bearer $token',
@@ -41,12 +39,7 @@ class AgendaProvider extends GetConnect {
       },
     );
 
-    print('📡 PUT trabajo CONCLUIDO: $_urlBase/edita-sol/$age_id');
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
-
     if (response.statusCode! < 200 || response.statusCode! >= 300) {
-      print('❌ PUT falló: ${response.statusCode}');
       final message =
           response.body is Map && response.body?['message'] != null
               ? response.body['message']

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/response_api.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class LoginProvider extends GetConnect {
   final String _url = "${Environment.API_URL}login";
@@ -28,12 +29,8 @@ class LoginProvider extends GetConnect {
     );
 
     if (response.body == null) {
-      Get.snackbar(
-        'Error',
-        'No se pudo ejecutar la petición',
-        backgroundColor: Colors.amber,
-        colorText: Colors.white,
-      );
+      SnackbarService.warning('No se pudo ejecutar la petición');
+
       return ResponseApi();
     }
 

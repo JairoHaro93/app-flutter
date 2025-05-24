@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/models/trabajo.dart';
 import 'package:redecom_app/src/models/user.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
+// ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class MiAgendaController extends GetxController {
@@ -30,8 +31,7 @@ class MiAgendaController extends GetxController {
 
       _initSocket(user.id!);
     } catch (e) {
-      Get.snackbar('Error', '❌ Error al obtener la agenda del técnico');
-      print('❌ $e');
+      SnackbarService.error('❌ Error al obtener la agenda del técnico');
     }
   }
 
@@ -43,29 +43,38 @@ class MiAgendaController extends GetxController {
 
     socket.connect();
 
-    socket.onConnect((_) {
-      print('🔌 Conectado al socket como técnico ID: $idtec');
-    });
+    socket.onConnect((_) {});
 
     socket.on('trabajoAgendado', (_) async {
-      print('🔄 Evento trabajoAgendado recibido en MiAgendaController');
       await cargarTrabajos();
-      Get.snackbar('Agenda actualizada', '📋 Se ha recibido un nuevo trabajo');
+
+      //SnackbarService.success('📋 Se ha recibido un nuevo trabajo');
     });
 
-    socket.onDisconnect((_) {
-      print('🔌 Socket desconectado');
-    });
+    socket.onDisconnect((_) {});
   }
 
   Future<void> cargarTrabajos() async {
     isLoading.value = true;
+
     try {
-      final list = await agendaProvider.getAgendaTec(user.id!);
-      trabajos.assignAll(list);
+      final nuevosTrabajos = await agendaProvider.getAgendaTec(user.id!);
+
+      final idsAnteriores = trabajos.map((t) => t.id).toSet();
+      final idsNuevos = nuevosTrabajos.map((t) => t.id).toSet();
+
+      final nuevos = idsNuevos.difference(idsAnteriores);
+      final eliminados = idsAnteriores.difference(idsNuevos);
+
+      trabajos.assignAll(nuevosTrabajos);
+
+      if (nuevos.isNotEmpty) {
+        SnackbarService.success('📥 Se ha recibido un nuevo trabajo');
+      } else if (eliminados.isNotEmpty) {
+        SnackbarService.warning('📤 Se ha eliminado un trabajo de tu agenda');
+      }
     } catch (e) {
-      Get.snackbar('Error', '❌ No se pudo cargar la agenda');
-      print('❌ $e');
+      SnackbarService.error('❌ No se pudo cargar la agenda');
     } finally {
       isLoading.value = false;
     }

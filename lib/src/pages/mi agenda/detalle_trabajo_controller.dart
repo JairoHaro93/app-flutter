@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:redecom_app/src/models/trabajo.dart';
 import 'package:redecom_app/src/models/soporte.dart';
 import 'package:redecom_app/src/providers/soporte_provider.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class DetalleTrabajoController extends GetxController {
   final trabajoSeleccionado = Rxn<Trabajo>();
@@ -38,8 +39,7 @@ class DetalleTrabajoController extends GetxController {
         );
       }
     } catch (e) {
-      Get.snackbar('Error', 'No se pudo cargar el detalle del trabajo');
-      print('❌ Error al cargar detalle del soporte: $e');
+      SnackbarService.error('No se pudo cargar el detalle del trabajo');
     }
   }
 }

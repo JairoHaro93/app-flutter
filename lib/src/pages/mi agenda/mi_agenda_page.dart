@@ -13,7 +13,14 @@ class MiAgendaPage extends StatelessWidget {
     final controller = Get.put(MiAgendaController());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi Agenda')),
+      appBar: AppBar(
+        title: const Text('Mi Agenda'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.offAllNamed('/home'),
+        ),
+      ),
+
       body: Obx(() {
         if (controller.trabajos.isEmpty) {
           return const Center(child: Text('No hay trabajos agendados'));

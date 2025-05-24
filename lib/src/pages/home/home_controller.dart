@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/models/user.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class HomeController extends GetxController {
   late User user;
@@ -128,12 +129,7 @@ class HomeController extends GetxController {
     if (ruta != null) {
       Get.toNamed(ruta);
     } else {
-      Get.snackbar(
-        'Aviso',
-        'Función no implementada: $opcion',
-        backgroundColor: Colors.amber,
-        colorText: Colors.white,
-      );
+      SnackbarService.warning('Función no implementada: $opcion');
     }
   }
 }
