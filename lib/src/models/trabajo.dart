@@ -4,7 +4,7 @@ class Trabajo {
   final String subtipo;
   final String estado;
   final String ordenInstalacion;
-  final String soporteId;
+  final int soporteId;
   final String horaInicio;
   final String horaFin;
   final String fecha;
@@ -38,8 +38,11 @@ class Trabajo {
     tipo: json['age_tipo'] ?? '',
     subtipo: json['age_subtipo'] ?? '',
     estado: json['age_estado'] ?? '',
-    ordenInstalacion: json['age_ord_ins'] ?? '',
-    soporteId: json['age_id_sop'] ?? '',
+    ordenInstalacion: '${json['ord_ins'] ?? ''}',
+    soporteId:
+        json['age_id_sop'] is int
+            ? json['age_id_sop']
+            : int.tryParse(json['age_id_sop']?.toString() ?? '') ?? 0,
     horaInicio: json['age_hora_inicio'] ?? '',
     horaFin: json['age_hora_fin'] ?? '',
     fecha: json['age_fecha'] ?? '',

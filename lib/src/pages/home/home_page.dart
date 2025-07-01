@@ -87,7 +87,7 @@ class HomePage extends StatelessWidget {
         children: [
           const CircleAvatar(backgroundColor: Colors.white, radius: 50),
           Text(
-            '${con.user.name ?? ''}',
+            '${con.user?.name ?? 'Usuario'}',
             style: const TextStyle(color: Colors.black, fontSize: 20),
           ),
         ],

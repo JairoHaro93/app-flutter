@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/models/user.dart';
+import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class HomeController extends GetxController {
-  late User user;
+  User? user;
 
   List<String> arrAdmin = [];
   List<String> arrBodega = [];
@@ -28,20 +27,23 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final storage = GetStorage();
-    final userData = storage.read('user');
 
-    if (userData != null) {
-      user = User.fromJson(userData);
-      print(user.toJson());
+    final authService = Get.find<AuthService>();
+    final current = authService.currentUser;
+
+    if (current != null) {
+      user = current;
+      print(user!.toJson());
       definirAreas();
     } else {
-      print('No se encontró usuario en local storage');
+      print('No se encontró usuario en sesión');
     }
   }
 
   void definirAreas() {
-    List<String> roles = List<String>.from(user.roles as Iterable);
+    if (user == null) return;
+
+    List<String> roles = List<String>.from(user!.roles as Iterable);
 
     if (roles.isNotEmpty) {
       arrAdmin = roles.where((rol) => rol.startsWith('A')).toList();
@@ -108,8 +110,7 @@ class HomeController extends GetxController {
   }
 
   void signOut() {
-    GetStorage().remove('user');
-    Get.offNamedUntil('/', (route) => false);
+    Get.find<AuthService>().logout();
   }
 
   void gotoPerilInfoPage() {

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:jwt_decode/jwt_decode.dart';
-
 import 'package:redecom_app/src/models/response_api.dart';
 import 'package:redecom_app/src/models/user.dart';
 import 'package:redecom_app/src/providers/login_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
+import 'package:redecom_app/src/utils/auth_service.dart';
+import 'package:redecom_app/src/utils/socket_service.dart';
 
 class LoginController extends GetxController {
   TextEditingController usuarioController = TextEditingController();
@@ -34,11 +34,12 @@ class LoginController extends GetxController {
 
       Map<String, dynamic> decodedToken = Jwt.parseJwt(token);
       User user = User.fromJson(decodedToken);
-      user.sessionToken = token;
 
-      final storage = GetStorage();
-      storage.write('token', token);
-      storage.write('user', user.toJson());
+      // 1️⃣ Guardar sesión
+      await Get.find<AuthService>().login(user, token);
+
+      // 2️⃣ Inicializar el socket con usuario_id ya disponible
+      await Get.find<SocketService>().init();
 
       goToHomePage();
     } else {
@@ -49,13 +50,11 @@ class LoginController extends GetxController {
   Future<bool> isValidForm(String usuario, String password) async {
     if (usuario.isEmpty) {
       SnackbarService.warning('Ingresa el usuario');
-
       return false;
     }
 
     if (password.isEmpty) {
       SnackbarService.warning('Ingresa la contraseña');
-
       return false;
     }
 
