@@ -62,6 +62,8 @@ class EditarTrabajoController extends GetxController {
 
   void _cargarImagenes() async {
     try {
+      final inicio = DateTime.now();
+
       final imgInst = await imagenesProvider.getImagenesPorTrabajo(
         'neg_t_img_inst',
         trabajo.ordenInstalacion,
@@ -75,6 +77,9 @@ class EditarTrabajoController extends GetxController {
         );
         imagenesVisita.assignAll(imgVisita);
       }
+
+      final fin = DateTime.now();
+      print('📥 Tiempo de descarga de imágenes: ${fin.difference(inicio)}');
     } catch (_) {
       SnackbarService.error('No se pudieron cargar las imágenes');
     }
@@ -147,7 +152,8 @@ class EditarTrabajoController extends GetxController {
     final image = img.decodeImage(bytes);
     if (image == null) throw Exception('No se pudo procesar la imagen');
 
-    final resized = img.copyResize(image, width: 1024);
+    //CALDADAD DE IMAGEN
+    final resized = img.copyResize(image, width: 1000);
     final font = img.arial_48;
 
     // 🕒 Fecha y hora
@@ -213,13 +219,14 @@ class EditarTrabajoController extends GetxController {
     File archivoOriginal,
   ) async {
     try {
-      // 🛠️ Procesar la imagen con texto (ya redimensionada)
-      final imagenProcesada = await _procesarImagenConTexto(
-        archivoOriginal,
-        campo,
-      );
+      final inicio = DateTime.now();
 
-      // ☁️ Subir directamente
+      final comprimida = await _comprimirImagen(archivoOriginal);
+      final despuesComprimir = DateTime.now();
+
+      final imagenProcesada = await _procesarImagenConTexto(comprimida, campo);
+      final despuesProcesar = DateTime.now();
+
       await imagenesProvider.subirImagen(
         tabla: tabla,
         id: id,
@@ -227,9 +234,19 @@ class EditarTrabajoController extends GetxController {
         directorio: directorio,
         file: imagenProcesada,
       );
+      final despuesSubida = DateTime.now();
 
-      // 🔄 Recargar imágenes para actualizar la UI
       _cargarImagenes();
+      final fin = DateTime.now();
+
+      print('⏱️ Tiempo total: ${fin.difference(inicio)}');
+      print('🗜️ Compresión: ${despuesComprimir.difference(inicio)}');
+      print(
+        '🖊️ Procesado texto: ${despuesProcesar.difference(despuesComprimir)}',
+      );
+      print('☁️ Subida: ${despuesSubida.difference(despuesProcesar)}');
+      print('🔄 Recarga: ${fin.difference(despuesSubida)}');
+
       SnackbarService.success('✅ Imagen actualizada');
     } catch (e) {
       SnackbarService.error('❌ No se pudo subir la imagen');
@@ -275,6 +292,24 @@ class EditarTrabajoController extends GetxController {
     } finally {
       isSaving.value = false;
     }
+  }
+
+  Future<File> _comprimirImagen(
+    File original, {
+    int maxWidth = 800,
+    int calidad = 80,
+  }) async {
+    final bytes = await original.readAsBytes();
+    final image = img.decodeImage(bytes);
+    if (image == null) throw Exception('No se pudo leer la imagen');
+
+    final resized = img.copyResize(image, width: maxWidth);
+    final compressedBytes = img.encodeJpg(resized, quality: calidad);
+
+    final tempDir = await getTemporaryDirectory();
+    final path =
+        '${tempDir.path}/img_comprimida_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    return File(path)..writeAsBytesSync(compressedBytes);
   }
 
   @override
