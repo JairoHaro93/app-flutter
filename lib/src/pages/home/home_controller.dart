@@ -18,7 +18,8 @@ class HomeController extends GetxController {
   final Map<String, List<String>> funcionesVisiblesFlutter = {
     'NOC': [],
     'Admin': [],
-    'Técnico': ['Registro Soporte', 'Mi Agenda'],
+    //   'Técnico': ['Registro Soporte', 'Mi Agenda'],
+    'Técnico': ['Mi Agenda'],
     'Recuperación': ['Mapa Morosos'],
     'Bodega': ['Inventario'],
     // Puedes seguir agregando por área
@@ -119,7 +120,7 @@ class HomeController extends GetxController {
 
   final Map<String, String> rutasPorOpcion = {
     'Mi Agenda': '/tecnico/mi-agenda',
-    'Registro Soporte': '/tecnico/soporte',
+    //'Registro Soporte': '/tecnico/soporte',
     'Mapa Morosos': '/recuperacion/mapa',
     'Inventario': '/bodega/inventario',
     'Usuarios': '/admin/usuarios',

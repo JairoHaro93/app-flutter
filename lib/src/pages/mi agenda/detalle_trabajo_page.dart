@@ -51,28 +51,14 @@ class _DetalleTrabajoPageState extends State<DetalleTrabajoPage> {
                 child: ListView(
                   children: [
                     _sectionHeader('Información General'),
-                    _info(Icons.assignment, 'ID', '${detalle.id}'),
+
                     _info(Icons.person, 'Cliente', detalle.clienteNombre),
                     _info(Icons.phone, 'Teléfono', detalle.telefono),
-                    _info(
-                      Icons.badge,
-                      'Registrado por',
-                      detalle.registradoPorNombre,
-                    ),
                     _info(Icons.info, 'Estado', detalle.estado),
-                    _info(
-                      Icons.calendar_today,
-                      'Fecha Registro',
-                      formatFecha(detalle.fechaRegistro),
-                    ),
-                    _info(
-                      Icons.event_available,
-                      'Fecha Aceptación',
-                      formatFecha(detalle.fechaAcepta),
-                    ),
+
                     const Divider(),
 
-                    _sectionHeader('Observaciones y Solución'),
+                    _sectionHeader('Observaciones y Diagnóstico'),
                     _info(
                       Icons.comment,
                       'Observaciones',
@@ -80,10 +66,10 @@ class _DetalleTrabajoPageState extends State<DetalleTrabajoPage> {
                     ),
                     _info(
                       Icons.check_circle,
-                      'Solución',
+                      'Diagnóstico',
                       detalle.solucionDetalle.isNotEmpty
                           ? detalle.solucionDetalle
-                          : 'Sin solución',
+                          : 'Sin Diagnóstoico',
                     ),
 
                     const Divider(),

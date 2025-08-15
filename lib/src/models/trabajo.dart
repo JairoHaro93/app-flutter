@@ -3,8 +3,9 @@ class Trabajo {
   final String tipo;
   final String subtipo;
   final String estado;
-  final String ordenInstalacion;
-  final int soporteId;
+  final int ordenInstalacion; // ord_ins
+  final int soporteId; // age_id_sop
+  final int ageIdTipo; // ← NUEVO: VIS/LOS id (age_id_tipo)
   final String horaInicio;
   final String horaFin;
   final String fecha;
@@ -22,6 +23,7 @@ class Trabajo {
     required this.estado,
     required this.ordenInstalacion,
     required this.soporteId,
+    required this.ageIdTipo, // ← NUEVO
     required this.horaInicio,
     required this.horaFin,
     required this.fecha,
@@ -34,24 +36,35 @@ class Trabajo {
   });
 
   factory Trabajo.fromJson(Map<String, dynamic> json) => Trabajo(
-    id: json['id'] ?? 0,
-    tipo: json['age_tipo'] ?? '',
-    subtipo: json['age_subtipo'] ?? '',
-    estado: json['age_estado'] ?? '',
-    ordenInstalacion: '${json['ord_ins'] ?? ''}',
+    id: json['id'] ?? json['age_id'] ?? 0,
+    tipo: (json['age_tipo'] ?? json['tipo'] ?? '').toString(),
+    subtipo: (json['age_subtipo'] ?? json['subtipo'] ?? '').toString(),
+    estado: (json['age_estado'] ?? json['estado'] ?? '').toString(),
+    ordenInstalacion:
+        json['ord_ins'] is int
+            ? json['ord_ins']
+            : int.tryParse(json['ord_ins']?.toString() ?? '') ?? 0,
     soporteId:
         json['age_id_sop'] is int
             ? json['age_id_sop']
             : int.tryParse(json['age_id_sop']?.toString() ?? '') ?? 0,
-    horaInicio: json['age_hora_inicio'] ?? '',
-    horaFin: json['age_hora_fin'] ?? '',
-    fecha: json['age_fecha'] ?? '',
-    vehiculo: json['age_vehiculo'] ?? '',
-    tecnico: json['age_tecnico'] ?? '',
-    observaciones: json['age_observaciones'] ?? '',
-    coordenadas: json['age_coordenadas'] ?? '',
-    telefono: json['age_telefono'] ?? '',
-    solucion: json['age_solucion'],
+    ageIdTipo:
+        json['age_id_tipo']
+                is int // ← NUEVO
+            ? json['age_id_tipo']
+            : int.tryParse(json['age_id_tipo']?.toString() ?? '') ?? 0,
+    horaInicio:
+        (json['age_hora_inicio'] ?? json['horaInicio'] ?? '').toString(),
+    horaFin: (json['age_hora_fin'] ?? json['horaFin'] ?? '').toString(),
+    fecha: (json['age_fecha'] ?? json['fecha'] ?? '').toString(),
+    vehiculo: (json['age_vehiculo'] ?? json['vehiculo'] ?? '').toString(),
+    tecnico: (json['age_tecnico'] ?? json['tecnico'] ?? '').toString(),
+    observaciones:
+        (json['age_observaciones'] ?? json['observaciones'] ?? '').toString(),
+    coordenadas:
+        (json['age_coordenadas'] ?? json['coordenadas'] ?? '').toString(),
+    telefono: (json['age_telefono'] ?? json['telefono'] ?? '').toString(),
+    solucion: (json['age_solucion'] ?? json['solucion']),
   );
 
   Map<String, dynamic> toJson() {
@@ -62,6 +75,7 @@ class Trabajo {
       'age_estado': estado,
       'age_ord_ins': ordenInstalacion,
       'age_id_sop': soporteId,
+      'age_id_tipo': ageIdTipo, // ← NUEVO
       'age_hora_inicio': horaInicio,
       'age_hora_fin': horaFin,
       'age_fecha': fecha,
@@ -82,6 +96,7 @@ class Trabajo {
       estado: estado ?? this.estado,
       ordenInstalacion: ordenInstalacion,
       soporteId: soporteId,
+      ageIdTipo: ageIdTipo, // ← respeta el valor actual
       horaInicio: horaInicio,
       horaFin: horaFin,
       fecha: fecha,

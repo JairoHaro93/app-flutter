@@ -43,4 +43,21 @@ class Soporte {
       solucionDetalle: json['reg_sop_sol_det'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ord_ins': ordenInstalacion,
+      'reg_sop_opc': opcion,
+      'reg_sop_tel': telefono,
+      'reg_sop_registrado_por_id': registradoPorId,
+      'reg_sop_registrado_por_nombre': registradoPorNombre,
+      'reg_sop_observaciones': observaciones,
+      'reg_sop_fecha': fechaRegistro,
+      'reg_sop_estado': estado,
+      'reg_sop_nombre': clienteNombre,
+      'reg_sop_fecha_acepta': fechaAcepta,
+      'reg_sop_sol_det': solucionDetalle,
+    };
+  }
 }

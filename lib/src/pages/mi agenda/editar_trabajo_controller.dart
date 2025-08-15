@@ -1,10 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
@@ -16,21 +16,28 @@ import 'package:redecom_app/src/providers/imagenes_provider.dart';
 import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
+import 'package:redecom_app/src/providers/vis_provider.dart';
 
 class EditarTrabajoController extends GetxController {
-  final AgendaProvider agendaProvider = AgendaProvider();
-  final SoporteProvider soporteProvider = SoporteProvider();
-  final ImagenesProvider imagenesProvider = ImagenesProvider();
-  final SocketService socketService = Get.find<SocketService>();
+  // Providers / services
+  final agendaProvider = AgendaProvider();
+  final soporteProvider = SoporteProvider();
+  final imagenesProvider = ImagenesProvider();
+  final socketService = Get.find<SocketService>();
+  final authService = Get.find<AuthService>();
+  final visProvider = VisProvider();
 
+  // Estado
   final solucionController = TextEditingController();
   final isSaving = false.obs;
+
   final imagenesInstalacion = <String, ImagenInstalacion>{}.obs;
   final imagenesVisita = <String, ImagenInstalacion>{}.obs;
 
   late Trabajo trabajo;
 
-  List<String> get camposInstalacion => [
+  // Campos canónicos
+  List<String> get camposInstalacion => const [
     'fachada',
     'router',
     'potencia',
@@ -43,63 +50,90 @@ class EditarTrabajoController extends GetxController {
     'equipo_3',
   ];
 
-  List<String> get camposVisita => ['img_1', 'img_2', 'img_3', 'img_4'];
+  // Ajustados a tu backend VIS/LOS
+  List<String> get camposVisita => const ['img_1', 'img_2', 'img_3', 'img_4'];
 
-  bool get esSoporte => trabajo.tipo == 'SOPORTE';
-
-  final AuthService authService = Get.find<AuthService>();
-  late final String nombreUsuario;
+  bool get esInstalacion => trabajo.tipo.toUpperCase() == 'INSTALACION';
+  bool get esVisOLos =>
+      trabajo.tipo.toUpperCase() == 'VISITA' ||
+      trabajo.tipo.toUpperCase() == 'LOS';
 
   @override
   void onInit() {
     super.onInit();
-    if (Get.arguments != null && Get.arguments is Trabajo) {
-      trabajo = Get.arguments as Trabajo;
-      solucionController.text = trabajo.solucion ?? '';
-      _cargarImagenes();
+    if (Get.arguments is! Trabajo) {
+      SnackbarService.error('No se recibió el trabajo a editar');
+      Get.back();
+      return;
     }
+    trabajo = Get.arguments as Trabajo;
+    solucionController.text = trabajo.solucion ?? '';
+    _cargarImagenes();
   }
 
-  void _cargarImagenes() async {
+  // ======================================================
+  // CARGA INICIAL DE IMÁGENES
+  // ======================================================
+  Future<void> _cargarImagenes() async {
     try {
-      final inicio = DateTime.now();
-
-      final imgInst = await imagenesProvider.getImagenesPorTrabajo(
-        'neg_t_img_inst',
-        trabajo.ordenInstalacion,
-      );
-      imagenesInstalacion.assignAll(imgInst);
-
-      if (esSoporte) {
-        final imgVisita = await imagenesProvider.getImagenesPorTrabajo(
-          'neg_t_agenda',
-          trabajo.soporteId.toString(),
+      // Instalación (por ORD_INS)
+      if (trabajo.ordenInstalacion != 0) {
+        final inst = await imagenesProvider.getImagenesPorTrabajo(
+          'neg_t_instalaciones',
+          trabajo.ordenInstalacion.toString(),
         );
-        imagenesVisita.assignAll(imgVisita);
+        imagenesInstalacion.assignAll(inst);
+        // ignore: avoid_print
+        print('🖼️ Inst: ${inst.keys.toList()}');
+      } else {
+        imagenesInstalacion.clear();
       }
 
-      final fin = DateTime.now();
-      print('📥 Tiempo de descarga de imágenes: ${fin.difference(inicio)}');
-    } catch (_) {
+      // VIS/LOS (por ageIdTipo)
+      if (esVisOLos && trabajo.ageIdTipo != 0) {
+        final vis = await imagenesProvider.getImagenesPorTrabajo(
+          'neg_t_vis',
+          trabajo.ageIdTipo.toString(),
+        );
+        imagenesVisita.assignAll(vis);
+        // ignore: avoid_print
+        print('🖼️ Vis/Los: ${vis.keys.toList()}');
+      } else {
+        imagenesVisita.clear();
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ No se pudieron cargar imágenes: $e');
       SnackbarService.error('No se pudieron cargar las imágenes');
     }
   }
 
+  // ======================================================
+  // SELECCIÓN / SUBIDA DE IMÁGENES
+  // ======================================================
   Future<void> seleccionarImagenInstalacion(String campo) async {
-    _mostrarOpcionesImagen(
+    if (trabajo.ordenInstalacion == 0) {
+      SnackbarService.warning('Este trabajo no tiene ORD_INS');
+      return;
+    }
+    await _mostrarOpcionesImagen(
       campo: campo,
-      tabla: 'neg_t_img_inst',
-      id: trabajo.ordenInstalacion,
-      directorio: trabajo.ordenInstalacion,
+      tabla: 'neg_t_instalaciones',
+      id: trabajo.ordenInstalacion.toString(),
+      directorio: trabajo.ordenInstalacion.toString(),
     );
   }
 
   Future<void> seleccionarImagenVisita(String campo) async {
-    _mostrarOpcionesImagen(
+    if (!esVisOLos || trabajo.ageIdTipo == 0) {
+      SnackbarService.warning('Este trabajo no tiene VIS/LOS asociado');
+      return;
+    }
+    await _mostrarOpcionesImagen(
       campo: campo,
-      tabla: 'neg_t_agenda',
-      id: trabajo.soporteId.toString(),
-      directorio: trabajo.ordenInstalacion,
+      tabla: 'neg_t_vis',
+      id: trabajo.ageIdTipo.toString(),
+      directorio: trabajo.ordenInstalacion.toString(), // agrupas por ORD_INS
     );
   }
 
@@ -118,14 +152,23 @@ class EditarTrabajoController extends GetxController {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera),
-              title: const Text('Tomar Foto'),
+              title: const Text('Tomar foto'),
               onTap: () async {
                 Get.back();
-                final picked = await picker.pickImage(
+                final x = await picker.pickImage(
                   source: ImageSource.camera,
+                  maxWidth: 1600,
+                  imageQuality: 85,
                 );
-                if (picked != null)
-                  _subirImagen(campo, tabla, id, directorio, File(picked.path));
+                if (x != null) {
+                  await _subirImagen(
+                    campo,
+                    tabla,
+                    id,
+                    directorio,
+                    File(x.path),
+                  );
+                }
               },
             ),
             ListTile(
@@ -133,11 +176,20 @@ class EditarTrabajoController extends GetxController {
               title: const Text('Seleccionar de galería'),
               onTap: () async {
                 Get.back();
-                final picked = await picker.pickImage(
+                final x = await picker.pickImage(
                   source: ImageSource.gallery,
+                  maxWidth: 1600,
+                  imageQuality: 85,
                 );
-                if (picked != null)
-                  _subirImagen(campo, tabla, id, directorio, File(picked.path));
+                if (x != null) {
+                  await _subirImagen(
+                    campo,
+                    tabla,
+                    id,
+                    directorio,
+                    File(x.path),
+                  );
+                }
               },
             ),
           ],
@@ -145,70 +197,6 @@ class EditarTrabajoController extends GetxController {
       ),
       backgroundColor: Colors.white,
     );
-  }
-
-  Future<File> _procesarImagenConTexto(File original, String campo) async {
-    final bytes = await original.readAsBytes();
-    final image = img.decodeImage(bytes);
-    if (image == null) throw Exception('No se pudo procesar la imagen');
-
-    //CALDADAD DE IMAGEN
-    final resized = img.copyResize(image, width: 1000);
-    final font = img.arial_48;
-
-    // 🕒 Fecha y hora
-    final ahora = DateTime.now();
-    String texto =
-        '$campo         Tecnico: ${authService.currentUser?.username} ';
-
-    // 📍 Intentar obtener coordenadas
-    try {
-      bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permiso = await Geolocator.checkPermission();
-
-      if (permiso == LocationPermission.denied) {
-        permiso = await Geolocator.requestPermission();
-      }
-
-      if (permiso == LocationPermission.deniedForever || !servicioHabilitado) {
-        throw Exception('Permiso de ubicación denegado');
-      }
-
-      final pos = await Geolocator.getCurrentPosition();
-      texto +=
-          '\nLat: ${pos.latitude.toStringAsFixed(5)}, Lng: ${pos.longitude.toStringAsFixed(5)} ${ahora.day}/${ahora.month}/${ahora.year} ${ahora.hour}:${ahora.minute}   ';
-    } catch (e) {
-      texto += '\nSin coordenadas';
-    }
-
-    // 🏷️ Fondo blanco detrás del texto
-    // Fondo blanco que cubre todo el ancho de la imagen
-    img.fillRect(
-      resized,
-      0,
-      0,
-      resized.width,
-      120, // ajusta según cantidad de líneas de texto
-      img.getColor(255, 255, 255),
-    );
-
-    // 🖊️ Dibujar el texto
-    img.drawString(
-      resized,
-      font,
-      10,
-      10,
-      texto,
-      color: img.getColor(255, 0, 0),
-    );
-
-    final tempDir = await getTemporaryDirectory();
-    final newPath =
-        '${tempDir.path}/img_modificada_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final newImage = File(newPath)
-      ..writeAsBytesSync(img.encodeJpg(resized, quality: 85));
-
-    return newImage;
   }
 
   Future<void> _subirImagen(
@@ -221,12 +209,49 @@ class EditarTrabajoController extends GetxController {
     try {
       final inicio = DateTime.now();
 
-      final comprimida = await _comprimirImagen(archivoOriginal);
-      final despuesComprimir = DateTime.now();
+      // temp dir en main isolate
+      final tmpDir = await getTemporaryDirectory();
+      final outDir = tmpDir.path;
 
-      final imagenProcesada = await _procesarImagenConTexto(comprimida, campo);
-      final despuesProcesar = DateTime.now();
+      // 1) Comprimir en isolate (900px, progressive)
+      final comprimidaPath = await compute<_CompressArgs, String>(
+        _compressImageCompute,
+        _CompressArgs(
+          inPath: archivoOriginal.path,
+          outDir: outDir,
+          maxWidth: 900,
+          quality: 75,
+        ),
+      );
+      final comprimida = File(comprimidaPath);
 
+      // 2) Datos dinámicos
+      final (lat, lng) = await _tryGetLatLng();
+      final tecnico = authService.currentUser?.username ?? '';
+      final ahora = DateTime.now();
+
+      // 3) Calidad por tipo de campo
+      final overlayQuality =
+          (campo == 'speedtest' || campo == 'potencia') ? 82 : 75;
+
+      // 4) Overlay sin reescalar otra vez (keepWidth=900) + progressive
+      final overlayPath = await compute<_OverlayArgs, String>(
+        _overlayImageCompute,
+        _OverlayArgs(
+          inPath: comprimida.path,
+          outDir: outDir,
+          campo: campo,
+          tecnico: tecnico,
+          fechaHora: ahora,
+          lat: lat,
+          lng: lng,
+          quality: overlayQuality,
+          keepWidth: 900,
+        ),
+      );
+      final imagenProcesada = File(overlayPath);
+
+      // 5) Subir
       await imagenesProvider.subirImagen(
         tabla: tabla,
         id: id,
@@ -234,82 +259,152 @@ class EditarTrabajoController extends GetxController {
         directorio: directorio,
         file: imagenProcesada,
       );
-      final despuesSubida = DateTime.now();
 
-      _cargarImagenes();
+      // 6) Recargar galería (con retry)
+      await _recargarImagenesConRetry(tabla, id);
+
       final fin = DateTime.now();
-
-      print('⏱️ Tiempo total: ${fin.difference(inicio)}');
-      print('🗜️ Compresión: ${despuesComprimir.difference(inicio)}');
-      print(
-        '🖊️ Procesado texto: ${despuesProcesar.difference(despuesComprimir)}',
-      );
-      print('☁️ Subida: ${despuesSubida.difference(despuesProcesar)}');
-      print('🔄 Recarga: ${fin.difference(despuesSubida)}');
-
+      // ignore: avoid_print
+      print('⏱️ Total subida ${fin.difference(inicio)}');
       SnackbarService.success('✅ Imagen actualizada');
     } catch (e) {
+      // ignore: avoid_print
+      print('❌ _subirImagen error: $e');
       SnackbarService.error('❌ No se pudo subir la imagen');
     }
   }
 
+  Future<void> _recargarImagenesConRetry(String tabla, String id) async {
+    const delays = [300, 700, 1200]; // ms
+    for (final d in delays) {
+      await Future.delayed(Duration(milliseconds: d));
+      try {
+        final mapa = await imagenesProvider.getImagenesPorTrabajo(tabla, id);
+        if (tabla == 'neg_t_instalaciones') {
+          imagenesInstalacion.assignAll(mapa);
+        } else {
+          imagenesVisita.assignAll(mapa);
+        }
+        return;
+      } catch (_) {
+        // reintenta
+      }
+    }
+    // último intento
+    final mapa = await imagenesProvider.getImagenesPorTrabajo(tabla, id);
+    if (tabla == 'neg_t_instalaciones') {
+      imagenesInstalacion.assignAll(mapa);
+    } else {
+      imagenesVisita.assignAll(mapa);
+    }
+  }
+
+  // ======================================================
+  // GUARDAR SOLUCIÓN
+  // ======================================================
   Future<void> guardarSolucion() async {
-    final solucion = solucionController.text.trim();
-    if (solucion.isEmpty) {
+    final base = solucionController.text.trim();
+    if (base.isEmpty) {
       SnackbarService.warning('Ingresa una solución');
       return;
     }
 
     isSaving.value = true;
     try {
-      final actualizado = trabajo.copyWith(
-        estado: 'CONCLUIDO',
-        solucion: solucion,
+      // 1) construir solución con metadatos (técnico/fecha/coords)
+      final (lat, lng) = await _tryGetLatLng();
+      final solucionFinal = _buildSolucionFinal(
+        base: base,
+        tecnico: authService.currentUser?.username ?? '',
+        lat: lat,
+        lng: lng,
+        fecha: DateTime.now(),
       );
 
-      await agendaProvider.actualizarAgendaSolucion(
+      // 2) actualizar AGENDA (CONCLUIDO + solución)
+      final actualizado = trabajo.copyWith(
+        estado: 'CONCLUIDO',
+        solucion: solucionFinal,
+      );
+
+      await agendaProvider.actualizarAgendaSolucionByTrabajo(
         actualizado.id,
         actualizado,
       );
-
+      // Si el trabajo es VISITA o LOS y tiene ageIdTipo válido, marca como RESUELTO
+      if (esVisOLos && trabajo.ageIdTipo != 0) {
+        await visProvider.updateVisById(
+          trabajo.ageIdTipo,
+          'RESUELTO',
+          solucionFinal,
+        );
+      }
+      // 3) actualizar SOPORTE si aplica
       if (trabajo.soporteId != 0) {
         await soporteProvider.actualizarEstadoSop(trabajo.soporteId, {
           'reg_sop_estado': 'RESUELTO',
-          'reg_sop_sol_det': solucion,
+          'reg_sop_sol_det': solucionFinal,
         });
       }
 
+      // (si luego agregas VisProvider, aquí actualizas VIS/LOS)
+
+      // 4) notificar por socket y cerrar
       final userId = GetStorage().read('usuario_id');
       if (userId != null) {
         socketService.emit('trabajoCulminado', {'tecnicoId': userId});
       }
 
+      // Navega a Mi Agenda y limpia el stack
       SnackbarService.success('✅ Trabajo actualizado correctamente');
-      await Future.delayed(const Duration(seconds: 1));
-      Get.offAllNamed('/home');
-    } catch (_) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      Get.offAllNamed('/tecnico/mi-agenda');
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ guardarSolucion error: $e');
       SnackbarService.error('❌ No se pudo guardar la solución');
     } finally {
       isSaving.value = false;
     }
   }
 
-  Future<File> _comprimirImagen(
-    File original, {
-    int maxWidth = 800,
-    int calidad = 80,
-  }) async {
-    final bytes = await original.readAsBytes();
-    final image = img.decodeImage(bytes);
-    if (image == null) throw Exception('No se pudo leer la imagen');
+  /// Construye la solución final con metadatos mínimos.
+  String _buildSolucionFinal({
+    required String base,
+    required String tecnico,
+    required DateTime fecha,
+    double? lat,
+    double? lng,
+  }) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final fechaStr =
+        '${two(fecha.day)}/${two(fecha.month)}/${fecha.year} ${two(fecha.hour)}:${two(fecha.minute)}';
 
-    final resized = img.copyResize(image, width: maxWidth);
-    final compressedBytes = img.encodeJpg(resized, quality: calidad);
+    final geo =
+        (lat != null && lng != null)
+            ? ' | ${lat.toStringAsFixed(5)} , ${lng.toStringAsFixed(5)}'
+            : '';
 
-    final tempDir = await getTemporaryDirectory();
-    final path =
-        '${tempDir.path}/img_comprimida_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    return File(path)..writeAsBytesSync(compressedBytes);
+    return '$base\n—  $tecnico | $fechaStr$geo';
+  }
+
+  // ======================================================
+  // UTILS
+  // ======================================================
+  Future<(double?, double?)> _tryGetLatLng() async {
+    try {
+      var permiso = await Geolocator.checkPermission();
+      if (permiso == LocationPermission.denied) {
+        permiso = await Geolocator.requestPermission();
+      }
+      if (permiso == LocationPermission.deniedForever) return (null, null);
+      if (!await Geolocator.isLocationServiceEnabled()) return (null, null);
+
+      final pos = await Geolocator.getCurrentPosition();
+      return (pos.latitude, pos.longitude);
+    } catch (_) {
+      return (null, null);
+    }
   }
 
   @override
@@ -317,4 +412,119 @@ class EditarTrabajoController extends GetxController {
     solucionController.dispose();
     super.onClose();
   }
+}
+
+// ======================================================
+// compute helpers (NO USAN PLUGINS)
+// ======================================================
+class _CompressArgs {
+  final String inPath;
+  final String outDir;
+  final int maxWidth;
+  final int quality;
+  _CompressArgs({
+    required this.inPath,
+    required this.outDir,
+    required this.maxWidth,
+    required this.quality,
+  });
+}
+
+Future<String> _compressImageCompute(_CompressArgs a) async {
+  final bytes = await File(a.inPath).readAsBytes();
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) throw Exception('decodeImage null');
+
+  // ✅ corrige orientación EXIF
+  final baked = img.bakeOrientation(decoded);
+
+  final resized = img.copyResize(baked, width: a.maxWidth);
+  final compressed = img.encodeJpg(
+    resized,
+    quality: a.quality,
+    //  progressive: true, // 👈 JPEG progresivo
+  );
+  final out = '${a.outDir}/cmp_${DateTime.now().millisecondsSinceEpoch}.jpg';
+  await File(out).writeAsBytes(compressed);
+  return out;
+}
+
+class _OverlayArgs {
+  final String inPath;
+  final String outDir;
+  final String campo;
+  final String tecnico;
+  final DateTime fechaHora;
+  final double? lat;
+  final double? lng;
+  final int quality; // 👈 nuevo
+  final int keepWidth; // 👈 nuevo
+  _OverlayArgs({
+    required this.inPath,
+    required this.outDir,
+    required this.campo,
+    required this.tecnico,
+    required this.fechaHora,
+    required this.lat,
+    required this.lng,
+    required this.quality,
+    required this.keepWidth,
+  });
+}
+
+Future<String> _overlayImageCompute(_OverlayArgs a) async {
+  final bytes = await File(a.inPath).readAsBytes();
+  final src0 = img.decodeImage(bytes);
+  if (src0 == null) throw Exception('decodeImage null');
+
+  // ✅ corrige orientación EXIF
+  final src = img.bakeOrientation(src0);
+
+  // Mantén el ancho (evita segundo resize innecesario)
+  final canvas =
+      (src.width == a.keepWidth)
+          ? img.copyResize(src, width: a.keepWidth)
+          : img.copyResize(src, width: a.keepWidth);
+
+  final font = img.arial_48;
+
+  String two(int n) => n.toString().padLeft(2, '0');
+  final dd = two(a.fechaHora.day);
+  final mm = two(a.fechaHora.month);
+  final yyyy = a.fechaHora.year.toString();
+  final hh = two(a.fechaHora.hour);
+  final nn = two(a.fechaHora.minute);
+
+  final coords =
+      (a.lat != null && a.lng != null)
+          ? ' ${a.lat!.toStringAsFixed(5)}, ${a.lng!.toStringAsFixed(5)}'
+          : 'Sin coordenadas';
+
+  final lines = <String>[
+    'Tecnico: ${a.tecnico}',
+    '$coords  $dd/$mm/$yyyy $hh:$nn',
+  ];
+
+  const lineHeight = 40;
+  const padding = 10;
+  final blockH = padding * 2 + lines.length * lineHeight;
+
+  // Banda blanca arriba
+  img.fillRect(canvas, 0, 0, canvas.width, blockH, img.getColor(255, 255, 255));
+
+  // Texto rojo
+  var y = padding;
+  for (final line in lines) {
+    img.drawString(canvas, font, 10, y, line, color: img.getColor(255, 0, 0));
+    y += lineHeight;
+  }
+
+  final outBytes = img.encodeJpg(
+    canvas,
+    quality: a.quality,
+    //    progressive: true, // 👈 JPEG progresivo
+  );
+  final out = '${a.outDir}/ovl_${DateTime.now().millisecondsSinceEpoch}.jpg';
+  await File(out).writeAsBytes(outBytes);
+  return out;
 }
