@@ -1,30 +1,35 @@
-// lib/src/pages/mi%20agenda/editar_trabajo_page.dart
+// lib/src/pages/mi agenda/editar_trabajo_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import 'package:redecom_app/src/models/trabajo.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/editar_trabajo_controller.dart';
-import 'package:redecom_app/src/utils/date_helpers.dart';
+import 'package:redecom_app/src/pages/mi agenda/editar_trabajo_controller.dart';
 
 class EditarTrabajoPage extends GetView<EditarTrabajoController> {
   const EditarTrabajoPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Airbag por si alguien llega sin binding (útil en desarrollo)
+    // Airbag por si llegas sin binding en desarrollo
     if (!Get.isRegistered<EditarTrabajoController>()) {
       Get.put(EditarTrabajoController());
     }
 
-    final Trabajo t = Get.arguments as Trabajo;
-    final esInstalacion = t.tipo.toUpperCase() == 'INSTALACION';
-
     return Scaffold(
-      appBar: AppBar(title: Text('Editar ${t.tipo.toUpperCase()}')),
+      appBar: AppBar(
+        title: Obx(() {
+          final t = controller.trabajo.value;
+          final tipo = (t?.tipo ?? 'Trabajo').toUpperCase();
+          return Text('Editar $tipo');
+        }),
+      ),
       body: Stack(
         children: [
           Obx(() {
-            // Campos dinámicos (canónicos + los que vengan del backend)
+            final t = controller.trabajo.value;
+            if (t == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // Campos dinámicos (canónicos + extras del backend)
             final camposInst = [
               ...controller.camposInstalacion,
               ...controller.imagenesInstalacion.keys.where(
@@ -38,32 +43,14 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
               ),
             ];
 
+            final esInstalacion = controller.esInstalacion;
+
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                /*   _card(
-                  title: 'Resumen del trabajo',
-                  children: [
-                    _kv('Tipo', t.tipo),
-                    //_kv('Subtipo', t.subtipo),
-                    //_kv('Fecha', t.fecha),
-                    _kv('Fecha', Fmt.date(t.fecha)),
-                    _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
-                    _kv('Vehículo', t.vehiculo),
-                    //_kv('Técnico', t.tecnico),
-                    if ((t.observaciones).trim().isNotEmpty)
-                      _kv('Observaciones', t.observaciones),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                */
                 // ---- GALERÍA INSTALACIÓN ----
                 _card(
                   title: 'Imagenes Instalación',
-                  // trailing: Text(
-                  //  'ORD_INS: ${t.ordenInstalacion == 0 ? '—' : t.ordenInstalacion}',
-                  //  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  //),
                   children: [
                     if (t.ordenInstalacion == 0)
                       const Text('Este trabajo no tiene ORD_INS asignado.')
@@ -85,14 +72,6 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 // ---- GALERÍA VIS/LOS ----
                 _card(
                   title: 'Imagenes Visita',
-                  /*  trailing: Text(
-                    esInstalacion
-                        ? 'No aplica'
-                        : (t.ageIdTipo == 0
-                            ? 'Sin ID VIS/LOS'
-                            : 'ID VIS/LOS: ${t.ageIdTipo}'),
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),*/
                   children: [
                     if (esInstalacion)
                       const Text('Este trabajo es una instalación, no VIS/LOS.')
@@ -118,23 +97,17 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                       controller: controller.solucionController,
                       minLines: 3,
                       maxLines: 6,
-                      textCapitalization:
-                          TextCapitalization.characters, // UX del teclado
-
+                      textCapitalization: TextCapitalization.characters,
                       decoration: const InputDecoration(
-                        hintText: 'Describe la solución aplicada…',
+                        hintText: 'DESCRIBE LA SOLUCIÓN APLICADA…',
                         border: OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    /* const Text(
-                      'Al guardar, el estado pasará a CONCLUIDO. '
-                      'Si tomas/subes fotos, se incluirán datos de técnico/fecha/hora/ubicación sobre la imagen.',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                    ),*/
                   ],
                 ),
                 const SizedBox(height: 12),
+
                 // ---- GUARDAR ----
                 SizedBox(
                   width: double.infinity,
@@ -144,7 +117,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                             ? null
                             : controller.guardarSolucion,
                     icon: const Icon(Icons.save),
-                    label: const Text('Guardar'),
+                    label: const Text('GUARDAR'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -208,28 +181,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
     );
   }
 
-  Widget _kv(String label, String? value) {
-    final v = (value ?? '').trim();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(v.isEmpty ? '—' : v)),
-        ],
-      ),
-    );
-  }
-
-  /// Grilla de campos con miniaturas (si hay) y botón para añadir/reemplazar.
+  /// Grilla de campos con miniaturas y botón para añadir/reemplazar.
   Widget _gridCampos({
     required BuildContext context,
     required List<String> campos,
@@ -249,7 +201,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
       itemBuilder: (_, i) {
         final campo = campos[i];
 
-        // Sanitize URL (evita /null /undefined y vacíos)
+        // Sanitize URL
         final raw = (obtenerUrl(campo) ?? '').trim();
         final isBad =
             raw.isEmpty || raw.endsWith('/null') || raw.contains('/undefined');
@@ -315,7 +267,6 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                               );
                             },
                           ),
-                        // Botón de acción (añadir / reemplazar)
                         Positioned(
                           right: 4,
                           bottom: 4,

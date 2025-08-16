@@ -13,28 +13,27 @@ import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
 import 'package:redecom_app/src/providers/soporte_provider.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
+import 'package:redecom_app/src/providers/vis_provider.dart';
 import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
-import 'package:redecom_app/src/providers/vis_provider.dart';
 
 class EditarTrabajoController extends GetxController {
   // Providers / services
   final agendaProvider = AgendaProvider();
   final soporteProvider = SoporteProvider();
   final imagenesProvider = ImagenesProvider();
+  final visProvider = VisProvider();
   final socketService = Get.find<SocketService>();
   final authService = Get.find<AuthService>();
-  final visProvider = VisProvider();
 
   // Estado
+  final trabajo = Rxn<Trabajo>(); // ✅ reactivo y nullable
   final solucionController = TextEditingController();
   final isSaving = false.obs;
 
   final imagenesInstalacion = <String, ImagenInstalacion>{}.obs;
   final imagenesVisita = <String, ImagenInstalacion>{}.obs;
-
-  late Trabajo trabajo;
 
   // Campos canónicos
   List<String> get camposInstalacion => const [
@@ -53,34 +52,42 @@ class EditarTrabajoController extends GetxController {
   // Ajustados a tu backend VIS/LOS
   List<String> get camposVisita => const ['img_1', 'img_2', 'img_3', 'img_4'];
 
-  bool get esInstalacion => trabajo.tipo.toUpperCase() == 'INSTALACION';
-  bool get esVisOLos =>
-      trabajo.tipo.toUpperCase() == 'VISITA' ||
-      trabajo.tipo.toUpperCase() == 'LOS';
+  // Flags de tipo, seguros contra null
+  bool get esInstalacion =>
+      (trabajo.value?.tipo ?? '').toUpperCase() == 'INSTALACION';
+  bool get esVisOLos {
+    final t = (trabajo.value?.tipo ?? '').toUpperCase();
+    return t == 'VISITA' || t == 'LOS';
+  }
 
   @override
   void onInit() {
     super.onInit();
-    if (Get.arguments is! Trabajo) {
+    // Carga de argumentos segura
+    if (Get.arguments is Trabajo) {
+      trabajo.value = Get.arguments as Trabajo;
+      solucionController.text = trabajo.value?.solucion ?? '';
+      _cargarImagenes();
+    } else {
       SnackbarService.error('No se recibió el trabajo a editar');
-      Get.back();
-      return;
+      // Sal del flujo de edición con un after-frame para evitar pops en build
+      Future.microtask(() => Get.offAllNamed('/tecnico/mi-agenda'));
     }
-    trabajo = Get.arguments as Trabajo;
-    solucionController.text = trabajo.solucion ?? '';
-    _cargarImagenes();
   }
 
   // ======================================================
   // CARGA INICIAL DE IMÁGENES
   // ======================================================
   Future<void> _cargarImagenes() async {
+    final t = trabajo.value;
+    if (t == null) return;
+
     try {
       // Instalación (por ORD_INS)
-      if (trabajo.ordenInstalacion != 0) {
+      if (t.ordenInstalacion != 0) {
         final inst = await imagenesProvider.getImagenesPorTrabajo(
           'neg_t_instalaciones',
-          trabajo.ordenInstalacion.toString(),
+          t.ordenInstalacion.toString(),
         );
         imagenesInstalacion.assignAll(inst);
         // ignore: avoid_print
@@ -90,10 +97,10 @@ class EditarTrabajoController extends GetxController {
       }
 
       // VIS/LOS (por ageIdTipo)
-      if (esVisOLos && trabajo.ageIdTipo != 0) {
+      if (esVisOLos && (t.ageIdTipo != 0)) {
         final vis = await imagenesProvider.getImagenesPorTrabajo(
           'neg_t_vis',
-          trabajo.ageIdTipo.toString(),
+          t.ageIdTipo.toString(),
         );
         imagenesVisita.assignAll(vis);
         // ignore: avoid_print
@@ -112,28 +119,34 @@ class EditarTrabajoController extends GetxController {
   // SELECCIÓN / SUBIDA DE IMÁGENES
   // ======================================================
   Future<void> seleccionarImagenInstalacion(String campo) async {
-    if (trabajo.ordenInstalacion == 0) {
+    final t = trabajo.value;
+    if (t == null) return;
+
+    if (t.ordenInstalacion == 0) {
       SnackbarService.warning('Este trabajo no tiene ORD_INS');
       return;
     }
     await _mostrarOpcionesImagen(
       campo: campo,
       tabla: 'neg_t_instalaciones',
-      id: trabajo.ordenInstalacion.toString(),
-      directorio: trabajo.ordenInstalacion.toString(),
+      id: t.ordenInstalacion.toString(),
+      directorio: t.ordenInstalacion.toString(),
     );
   }
 
   Future<void> seleccionarImagenVisita(String campo) async {
-    if (!esVisOLos || trabajo.ageIdTipo == 0) {
+    final t = trabajo.value;
+    if (t == null) return;
+
+    if (!esVisOLos || t.ageIdTipo == 0) {
       SnackbarService.warning('Este trabajo no tiene VIS/LOS asociado');
       return;
     }
     await _mostrarOpcionesImagen(
       campo: campo,
       tabla: 'neg_t_vis',
-      id: trabajo.ageIdTipo.toString(),
-      directorio: trabajo.ordenInstalacion.toString(), // agrupas por ORD_INS
+      id: t.ageIdTipo.toString(),
+      directorio: t.ordenInstalacion.toString(), // agrupas por ORD_INS
     );
   }
 
@@ -213,7 +226,7 @@ class EditarTrabajoController extends GetxController {
       final tmpDir = await getTemporaryDirectory();
       final outDir = tmpDir.path;
 
-      // 1) Comprimir en isolate (900px, progressive)
+      // 1) Comprimir en isolate (900px)
       final comprimidaPath = await compute<_CompressArgs, String>(
         _compressImageCompute,
         _CompressArgs(
@@ -234,7 +247,7 @@ class EditarTrabajoController extends GetxController {
       final overlayQuality =
           (campo == 'speedtest' || campo == 'potencia') ? 82 : 75;
 
-      // 4) Overlay sin reescalar otra vez (keepWidth=900) + progressive
+      // 4) Overlay sin reescalar otra vez (keepWidth=900)
       final overlayPath = await compute<_OverlayArgs, String>(
         _overlayImageCompute,
         _OverlayArgs(
@@ -303,6 +316,9 @@ class EditarTrabajoController extends GetxController {
   // GUARDAR SOLUCIÓN
   // ======================================================
   Future<void> guardarSolucion() async {
+    final t = trabajo.value;
+    if (t == null) return;
+
     final base = solucionController.text.trim();
     if (base.isEmpty) {
       SnackbarService.warning('Ingresa una solución');
@@ -322,7 +338,7 @@ class EditarTrabajoController extends GetxController {
       );
 
       // 2) actualizar AGENDA (CONCLUIDO + solución)
-      final actualizado = trabajo.copyWith(
+      final actualizado = t.copyWith(
         estado: 'CONCLUIDO',
         solucion: solucionFinal,
       );
@@ -331,31 +347,26 @@ class EditarTrabajoController extends GetxController {
         actualizado.id,
         actualizado,
       );
-      // Si el trabajo es VISITA o LOS y tiene ageIdTipo válido, marca como RESUELTO
-      if (esVisOLos && trabajo.ageIdTipo != 0) {
-        await visProvider.updateVisById(
-          trabajo.ageIdTipo,
-          'RESUELTO',
-          solucionFinal,
-        );
+
+      // 3) VIS/LOS: marca como RESUELTO si corresponde
+      if (esVisOLos && t.ageIdTipo != 0) {
+        await visProvider.updateVisById(t.ageIdTipo, 'RESUELTO', solucionFinal);
       }
-      // 3) actualizar SOPORTE si aplica
-      if (trabajo.soporteId != 0) {
-        await soporteProvider.actualizarEstadoSop(trabajo.soporteId, {
+
+      // 4) SOPORTE si aplica
+      if (t.soporteId != 0) {
+        await soporteProvider.actualizarEstadoSop(t.soporteId, {
           'reg_sop_estado': 'RESUELTO',
           'reg_sop_sol_det': solucionFinal,
         });
       }
 
-      // (si luego agregas VisProvider, aquí actualizas VIS/LOS)
-
-      // 4) notificar por socket y cerrar
+      // 5) Notificar por socket y navegar a Agenda
       final userId = GetStorage().read('usuario_id');
       if (userId != null) {
         socketService.emit('trabajoCulminado', {'tecnicoId': userId});
       }
 
-      // Navega a Mi Agenda y limpia el stack
       SnackbarService.success('✅ Trabajo actualizado correctamente');
       await Future.delayed(const Duration(milliseconds: 250));
       Get.offAllNamed('/tecnico/mi-agenda');
@@ -442,7 +453,7 @@ Future<String> _compressImageCompute(_CompressArgs a) async {
   final compressed = img.encodeJpg(
     resized,
     quality: a.quality,
-    //  progressive: true, // 👈 JPEG progresivo
+    // progressive: true,
   );
   final out = '${a.outDir}/cmp_${DateTime.now().millisecondsSinceEpoch}.jpg';
   await File(out).writeAsBytes(compressed);
@@ -457,8 +468,8 @@ class _OverlayArgs {
   final DateTime fechaHora;
   final double? lat;
   final double? lng;
-  final int quality; // 👈 nuevo
-  final int keepWidth; // 👈 nuevo
+  final int quality;
+  final int keepWidth;
   _OverlayArgs({
     required this.inPath,
     required this.outDir,
@@ -480,10 +491,16 @@ Future<String> _overlayImageCompute(_OverlayArgs a) async {
   // ✅ corrige orientación EXIF
   final src = img.bakeOrientation(src0);
 
-  // Mantén el ancho (evita segundo resize innecesario)
+  // ❌ antes reescalaba siempre
+  // final canvas =
+  //     (src.width == a.keepWidth)
+  //         ? img.copyResize(src, width: a.keepWidth)
+  //         : img.copyResize(src, width: a.keepWidth);
+
+  // ✅ si ya tiene el ancho, úsalo tal cual; si no, reescala
   final canvas =
       (src.width == a.keepWidth)
-          ? img.copyResize(src, width: a.keepWidth)
+          ? src
           : img.copyResize(src, width: a.keepWidth);
 
   final font = img.arial_48;
@@ -519,11 +536,7 @@ Future<String> _overlayImageCompute(_OverlayArgs a) async {
     y += lineHeight;
   }
 
-  final outBytes = img.encodeJpg(
-    canvas,
-    quality: a.quality,
-    //    progressive: true, // 👈 JPEG progresivo
-  );
+  final outBytes = img.encodeJpg(canvas, quality: a.quality);
   final out = '${a.outDir}/ovl_${DateTime.now().millisecondsSinceEpoch}.jpg';
   await File(out).writeAsBytes(outBytes);
   return out;
