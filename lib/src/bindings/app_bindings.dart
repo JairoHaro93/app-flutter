@@ -1,15 +1,15 @@
 // lib/src/bindings/app_bindings.dart
 import 'package:get/get.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/editar_agenda_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_controller.dart';
 
 // Servicios globales
 import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 
 // Controllers de páginas
-import 'package:redecom_app/src/pages/mi%20agenda/mi_agenda_controller.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/detalle_instalacion_controller.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/detalle_soporte_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_controller.dart';
 
 /// Se ejecuta al iniciar la app. Registra servicios globales.
 class AppInitialBinding extends Bindings {

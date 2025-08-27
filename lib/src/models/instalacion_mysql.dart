@@ -18,8 +18,6 @@ class InstalacionMysql {
   final String? equipo2;
   final String? equipo3;
 
-  final DateTime? fechaActualizacion;
-
   InstalacionMysql({
     required this.id,
     required this.ordIns,
@@ -36,7 +34,6 @@ class InstalacionMysql {
     this.equipo1,
     this.equipo2,
     this.equipo3,
-    this.fechaActualizacion,
   });
 
   factory InstalacionMysql.fromJson(Map<String, dynamic> json) {
@@ -75,7 +72,6 @@ class InstalacionMysql {
       equipo1: _s(json['equipo_1']),
       equipo2: _s(json['equipo_2']),
       equipo3: _s(json['equipo_3']),
-      fechaActualizacion: _dt(json['fecha_actualizacion']),
     );
   }
 

@@ -52,7 +52,6 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                   _kv('Teléfonos', inst.instTelefonos),
                   _kv('Coordenadas', inst.instCoordenadas),
                   _kv('Observación', inst.instObservacion),
-                  _kv('Actualización', _fmtDateTime(inst.fechaActualizacion)),
                 ],
               ),
               const SizedBox(height: 12),

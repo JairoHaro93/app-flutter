@@ -265,7 +265,7 @@ class EditarAgendaController extends GetxController {
       final imagenProcesada = File(overlayPath);
 
       // 5) Subir
-      await imagenesProvider.subirImagen(
+      await imagenesProvider.postImagenUnitaria(
         tabla: tabla,
         id: id,
         campo: campo,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:redecom_app/src/models/agenda.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/mi_agenda_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_controller.dart';
 
 class MiAgendaPage extends GetView<MiAgendaController> {
   const MiAgendaPage({super.key});

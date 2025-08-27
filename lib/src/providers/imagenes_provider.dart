@@ -8,17 +8,10 @@ import 'package:redecom_app/src/models/imagen_instalacion.dart';
 
 class ImagenesProvider extends GetConnect {
   // Asegúrate que Environment.API_URL termine en "/"
-  final String _urlBase = '${Environment.API_URL}imagenes';
-
+  //final String _urlBase = '${Environment.API_URL}imagenes';
+  final String _urlBase = Environment.api('imagenes');
   ImagenesProvider() {
     httpClient.timeout = const Duration(seconds: 20);
-
-    // Logs de request
-    httpClient.addRequestModifier<dynamic>((request) {
-      // ignore: avoid_print
-      print('➡️ ${request.method} ${request.url}');
-      return request;
-    });
 
     // Inyección de token y content-type JSON por defecto (GET)
     httpClient.addRequestModifier<dynamic>((request) {
@@ -29,15 +22,6 @@ class ImagenesProvider extends GetConnect {
       request.headers['Content-Type'] = 'application/json';
       return request;
     });
-
-    // Logs de response
-    httpClient.addResponseModifier<dynamic>((request, response) {
-      // ignore: avoid_print
-      print('⬅️ ${response.statusCode} ${request?.url}');
-      // ignore: avoid_print
-      print('🧾 Body: ${response.bodyString}');
-      return response;
-    });
   }
 
   /// Descarga imágenes por tabla e id.
@@ -47,11 +31,7 @@ class ImagenesProvider extends GetConnect {
     Object trabajoId,
   ) async {
     final id = trabajoId.toString();
-    final url = '$_urlBase/download/$tabla/$id'; // 👈 corregido
-    // ignore: avoid_print
-    print('📦 Buscando imágenes: tabla=$tabla id=$id');
-    // ignore: avoid_print
-    print('🌐 GET $url');
+    final url = '$_urlBase/download/$tabla/$id';
 
     // intento + retry suave
     Response resp;
@@ -81,9 +61,7 @@ class ImagenesProvider extends GetConnect {
       final result = <String, ImagenInstalacion>{};
 
       // Origin real desde API_URL para reemplazar 'localhost'
-      final api = Uri.parse(
-        Environment.API_URL,
-      ); // ej: http://192.168.0.181:3000/api/
+      final api = Uri.parse(Environment.API_URL);
       final origin =
           '${api.scheme}://${api.host}${api.hasPort ? ':${api.port}' : ''}';
 
@@ -115,42 +93,14 @@ class ImagenesProvider extends GetConnect {
         }
       });
 
-      // ignore: avoid_print
-      print('🔍 Imágenes recibidas: ${result.length}');
-      result.forEach((k, v) {
-        // ignore: avoid_print
-        print('  $k -> ${v.url}');
-      });
-
       return result;
     }
 
-    // ignore: avoid_print
-    print('❌ Error getImagenesPorAgenda [$code]');
-    // ignore: avoid_print
-    print('❌ BODY: ${resp.body}');
     throw Exception('Error al obtener imágenes');
   }
 
-  /// Subida de imagen unitaria (compatible con Angular)
-  Future<void> postImagenUnitaria({
-    required String tabla,
-    required String id,
-    required String campo,
-    required String directorio,
-    required File file,
-  }) async {
-    await subirImagen(
-      tabla: tabla,
-      id: id,
-      campo: campo,
-      directorio: directorio,
-      file: file,
-    );
-  }
-
   /// Subida multipart con Authorization
-  Future<void> subirImagen({
+  Future<void> postImagenUnitaria({
     required String tabla,
     required String id,
     required String campo,
@@ -182,12 +132,8 @@ class ImagenesProvider extends GetConnect {
 
     if (resp.statusCode != 200) {
       final body = await resp.stream.bytesToString();
-      // ignore: avoid_print
-      print('❌ Error al subir imagen: [${resp.statusCode}] $body');
+
       throw Exception('Error al subir imagen: $body');
     }
-
-    // ignore: avoid_print
-    print('✅ Imagen subida correctamente');
   }
 }

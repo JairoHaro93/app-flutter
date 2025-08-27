@@ -1,7 +1,7 @@
 // lib/src/pages/mi agenda/editar_trabajo_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/editar_agenda_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_controller.dart';
 
 class EditarAgendaPage extends GetView<EditarAgendaController> {
   const EditarAgendaPage({super.key});

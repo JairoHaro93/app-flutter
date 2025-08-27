@@ -8,10 +8,10 @@ import 'package:intl/date_symbol_data_local.dart';
 // Pages
 import 'package:redecom_app/src/pages/home/home_page.dart';
 import 'package:redecom_app/src/pages/login/login_page.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/mi_agenda_page.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/detalle_instalacion_page.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/detalle_soporte_page.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/editar_agenda_page.dart';
+import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_page.dart';
+import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_page.dart';
+import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_page.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_page.dart';
 import 'package:redecom_app/src/pages/perfil/perfil_info_page.dart';
 
 // Bindings centralizados
