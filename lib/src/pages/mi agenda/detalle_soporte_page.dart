@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'detalle_soporte_controller.dart';
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 import '../../utils/maps_helpers.dart';
 import 'package:redecom_app/src/utils/date_helpers.dart';
 
@@ -15,7 +15,7 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
       Get.put(DetalleSoporteController());
     }
 
-    final Trabajo t = Get.arguments as Trabajo;
+    final Agenda t = Get.arguments as Agenda;
 
     return Scaffold(
       appBar: AppBar(
@@ -37,8 +37,8 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              /* _card(
-                title: 'Trabajo',
+              _card(
+                title: 'Agenda',
                 children: [
                   _kv('Tipo', t.tipo),
                   // _kv('Subtipo', t.subtipo),
@@ -46,11 +46,11 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
                   _kv('Vehículo', t.vehiculo),
                   //_kv('Técnico', t.tecnico),
-                  // _kv('Observaciones', t.observaciones),
+                  _kv('diagnostico', t.diagnostico),
                 ],
               ),
               const SizedBox(height: 12),
-*/
+
               _card(
                 title: 'Servicio',
                 trailing:
@@ -68,22 +68,16 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   _kv('Referencia', controller.clienteReferencia.value),
                   _kv('Teléfonos', controller.clienteTelefonos.value),
                   _kv('Plan', controller.clientePlan.value),
-                  _kv('Estado', controller.clienteEstado.value),
+                  _kv('Estado de Pago', controller.clienteEstado.value),
                   _kv('IP', controller.clienteIp.value),
                   _kv('Servicio', controller.clienteServicio.value),
-                  _kv(
-                    'Tipo instalación',
-                    controller.clienteTipoInstalacion.value,
-                  ),
-                  _kv(
-                    'Estado instalación',
-                    controller.clienteEstadoInstalacion.value,
-                  ),
+                  //_kv('Tipo instalación',controller.clienteTipoInstalacion.value,),
+                  //_kv('Estado instalación',controller.clienteEstadoInstalacion.value,),
                   _kv('Cortado', controller.clienteCortado.value),
 
                   //_kv('Fecha instalación',_fmtDateTime(controller.clienteFechaInstalacion.value),),
                   _kv(
-                    'Fecha',
+                    'Fecha instalación',
                     Fmt.date(controller.clienteFechaInstalacion.value),
                   ),
                   // _kv('Coordenadas', controller.clienteCoordenadas.value),
@@ -116,8 +110,8 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   ],
                 ),
                 children: [
-                  if (t.ageIdTipo == 0) ...[
-                    const Text('Sin ID de VIS/LOS (ageIdTipo = 0)'),
+                  if (t.idTipo == 0) ...[
+                    const Text('Sin ID de VIS/LOS (idTipo = 0)'),
                   ] else if (controller.imagenesVis.isEmpty &&
                       !controller.isLoadingImgsVis.value) ...[
                     const Text('Sin imágenes registradas'),
@@ -148,7 +142,7 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   ],
                 ),
                 children: [
-                  if (t.ordenInstalacion == 0) ...[
+                  if (t.ordIns == 0) ...[
                     const Text('Sin ORD_INS'),
                   ] else if (controller.imagenesInstalacion.isEmpty &&
                       !controller.isLoadingImgsInst.value) ...[

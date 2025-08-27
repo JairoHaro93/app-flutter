@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/providers/clientes_provider.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
@@ -10,8 +10,8 @@ class DetalleSoporteController extends GetxController {
   final clientesProvider = ClientesProvider();
   final imagenesProvider = ImagenesProvider();
 
-  // Trabajo recibido por args
-  late final Trabajo trabajo;
+  // Agenda recibido por args
+  late final Agenda agenda;
 
   // Cliente (map bruto + campos mapeados)
   final clienteJson = Rxn<Map<String, dynamic>>();
@@ -33,7 +33,7 @@ class DetalleSoporteController extends GetxController {
   final clienteCoordenadas = ''.obs;
   final clienteFechaInstalacion = ''.obs;
 
-  // Imágenes VIS/LOS (id = ageIdTipo)
+  // Imágenes VIS/LOS (id = idTipo)
   final imagenesVis = <String, ImagenInstalacion>{}.obs;
   final isLoadingImgsVis = false.obs;
 
@@ -50,24 +50,24 @@ class DetalleSoporteController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    if (args is Trabajo) {
-      trabajo = args;
+    if (args is Agenda) {
+      agenda = args;
     } else {
       SnackbarService.error('No se recibió el trabajo (VIS/LOS)');
-      trabajo = Trabajo(
+      agenda = Agenda(
         id: 0,
         tipo: '',
         subtipo: '',
         estado: '',
-        ordenInstalacion: 0,
-        soporteId: 0,
-        ageIdTipo: 0,
+        ordIns: 0,
+        idSop: 0,
+        idTipo: 0,
         horaInicio: '',
         horaFin: '',
         fecha: '',
         vehiculo: '',
         tecnico: '',
-        observaciones: '',
+        diagnostico: '',
         coordenadas: '',
         telefono: '',
       );
@@ -100,7 +100,7 @@ class DetalleSoporteController extends GetxController {
 
   // ========== CLIENTE ==========
   Future<void> _cargarCliente() async {
-    final ordIns = trabajo.ordenInstalacion;
+    final ordIns = agenda.ordIns;
     if (ordIns == 0) {
       _clearCliente();
       return;
@@ -176,7 +176,7 @@ class DetalleSoporteController extends GetxController {
   Future<void> _cargarImagenesVis({bool force = false}) async {
     if (_busyImgsVis.value && !force) return;
 
-    final idVis = trabajo.ageIdTipo; // id del registro VIS/LOS
+    final idVis = agenda.idTipo; // id del registro VIS/LOS
     if (idVis == 0) {
       imagenesVis.clear();
       return;
@@ -185,7 +185,7 @@ class DetalleSoporteController extends GetxController {
     _busyImgsVis.value = true;
     isLoadingImgsVis.value = true;
     try {
-      final map = await imagenesProvider.getImagenesPorTrabajo(
+      final map = await imagenesProvider.getImagenesPorAgenda(
         'neg_t_vis',
         idVis.toString(),
       );
@@ -204,7 +204,7 @@ class DetalleSoporteController extends GetxController {
   Future<void> _cargarImagenesInstalacion({bool force = false}) async {
     if (_busyImgsInst.value && !force) return;
 
-    final ordIns = trabajo.ordenInstalacion;
+    final ordIns = agenda.ordIns;
     if (ordIns == 0) {
       imagenesInstalacion.clear();
       return;
@@ -213,7 +213,7 @@ class DetalleSoporteController extends GetxController {
     _busyImgsInst.value = true;
     isLoadingImgsInst.value = true;
     try {
-      final map = await imagenesProvider.getImagenesPorTrabajo(
+      final map = await imagenesProvider.getImagenesPorAgenda(
         'neg_t_instalaciones',
         ordIns.toString(),
       );

@@ -1,23 +1,23 @@
 // lib/src/pages/mi agenda/editar_trabajo_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:redecom_app/src/pages/mi agenda/editar_trabajo_controller.dart';
+import 'package:redecom_app/src/pages/mi%20agenda/editar_agenda_controller.dart';
 
-class EditarTrabajoPage extends GetView<EditarTrabajoController> {
-  const EditarTrabajoPage({super.key});
+class EditarAgendaPage extends GetView<EditarAgendaController> {
+  const EditarAgendaPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     // Airbag por si llegas sin binding en desarrollo
-    if (!Get.isRegistered<EditarTrabajoController>()) {
-      Get.put(EditarTrabajoController());
+    if (!Get.isRegistered<EditarAgendaController>()) {
+      Get.put(EditarAgendaController());
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Obx(() {
           final t = controller.trabajo.value;
-          final tipo = (t?.tipo ?? 'Trabajo').toUpperCase();
+          final tipo = (t?.tipo ?? 'Agenda').toUpperCase();
           return Text('Editar $tipo');
         }),
       ),
@@ -52,7 +52,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 _card(
                   title: 'Imagenes Instalación',
                   children: [
-                    if (t.ordenInstalacion == 0)
+                    if (t.ordIns == 0)
                       const Text('Este trabajo no tiene ORD_INS asignado.')
                     else
                       _gridCampos(

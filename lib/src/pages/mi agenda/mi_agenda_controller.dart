@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
@@ -13,7 +13,7 @@ class MiAgendaController extends GetxController {
 
   late final SocketService _socket;
 
-  final trabajos = <Trabajo>[].obs;
+  final trabajos = <Agenda>[].obs;
   final isLoading = false.obs;
 
   @override

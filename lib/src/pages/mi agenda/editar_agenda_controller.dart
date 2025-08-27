@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
 import 'package:redecom_app/src/providers/soporte_provider.dart';
@@ -18,7 +18,7 @@ import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 
-class EditarTrabajoController extends GetxController {
+class EditarAgendaController extends GetxController {
   // Providers / services
   final agendaProvider = AgendaProvider();
   final soporteProvider = SoporteProvider();
@@ -28,7 +28,7 @@ class EditarTrabajoController extends GetxController {
   final authService = Get.find<AuthService>();
 
   // Estado
-  final trabajo = Rxn<Trabajo>(); // ✅ reactivo y nullable
+  final trabajo = Rxn<Agenda>(); // ✅ reactivo y nullable
   final solucionController = TextEditingController();
   final isSaving = false.obs;
 
@@ -64,8 +64,8 @@ class EditarTrabajoController extends GetxController {
   void onInit() {
     super.onInit();
     // Carga de argumentos segura
-    if (Get.arguments is Trabajo) {
-      trabajo.value = Get.arguments as Trabajo;
+    if (Get.arguments is Agenda) {
+      trabajo.value = Get.arguments as Agenda;
       solucionController.text = trabajo.value?.solucion ?? '';
       _cargarImagenes();
     } else {
@@ -84,10 +84,10 @@ class EditarTrabajoController extends GetxController {
 
     try {
       // Instalación (por ORD_INS)
-      if (t.ordenInstalacion != 0) {
-        final inst = await imagenesProvider.getImagenesPorTrabajo(
+      if (t.ordIns != 0) {
+        final inst = await imagenesProvider.getImagenesPorAgenda(
           'neg_t_instalaciones',
-          t.ordenInstalacion.toString(),
+          t.ordIns.toString(),
         );
         imagenesInstalacion.assignAll(inst);
         // ignore: avoid_print
@@ -96,11 +96,11 @@ class EditarTrabajoController extends GetxController {
         imagenesInstalacion.clear();
       }
 
-      // VIS/LOS (por ageIdTipo)
-      if (esVisOLos && (t.ageIdTipo != 0)) {
-        final vis = await imagenesProvider.getImagenesPorTrabajo(
+      // VIS/LOS (por idTipo)
+      if (esVisOLos && (t.idTipo != 0)) {
+        final vis = await imagenesProvider.getImagenesPorAgenda(
           'neg_t_vis',
-          t.ageIdTipo.toString(),
+          t.idTipo.toString(),
         );
         imagenesVisita.assignAll(vis);
         // ignore: avoid_print
@@ -122,15 +122,15 @@ class EditarTrabajoController extends GetxController {
     final t = trabajo.value;
     if (t == null) return;
 
-    if (t.ordenInstalacion == 0) {
+    if (t.ordIns == 0) {
       SnackbarService.warning('Este trabajo no tiene ORD_INS');
       return;
     }
     await _mostrarOpcionesImagen(
       campo: campo,
       tabla: 'neg_t_instalaciones',
-      id: t.ordenInstalacion.toString(),
-      directorio: t.ordenInstalacion.toString(),
+      id: t.ordIns.toString(),
+      directorio: t.ordIns.toString(),
     );
   }
 
@@ -138,15 +138,15 @@ class EditarTrabajoController extends GetxController {
     final t = trabajo.value;
     if (t == null) return;
 
-    if (!esVisOLos || t.ageIdTipo == 0) {
+    if (!esVisOLos || t.idTipo == 0) {
       SnackbarService.warning('Este trabajo no tiene VIS/LOS asociado');
       return;
     }
     await _mostrarOpcionesImagen(
       campo: campo,
       tabla: 'neg_t_vis',
-      id: t.ageIdTipo.toString(),
-      directorio: t.ordenInstalacion.toString(), // agrupas por ORD_INS
+      id: t.idTipo.toString(),
+      directorio: t.ordIns.toString(), // agrupas por ORD_INS
     );
   }
 
@@ -292,7 +292,7 @@ class EditarTrabajoController extends GetxController {
     for (final d in delays) {
       await Future.delayed(Duration(milliseconds: d));
       try {
-        final mapa = await imagenesProvider.getImagenesPorTrabajo(tabla, id);
+        final mapa = await imagenesProvider.getImagenesPorAgenda(tabla, id);
         if (tabla == 'neg_t_instalaciones') {
           imagenesInstalacion.assignAll(mapa);
         } else {
@@ -304,7 +304,7 @@ class EditarTrabajoController extends GetxController {
       }
     }
     // último intento
-    final mapa = await imagenesProvider.getImagenesPorTrabajo(tabla, id);
+    final mapa = await imagenesProvider.getImagenesPorAgenda(tabla, id);
     if (tabla == 'neg_t_instalaciones') {
       imagenesInstalacion.assignAll(mapa);
     } else {
@@ -343,19 +343,19 @@ class EditarTrabajoController extends GetxController {
         solucion: solucionFinal,
       );
 
-      await agendaProvider.actualizarAgendaSolucionByTrabajo(
+      await agendaProvider.actualizarAgendaSolucionByAgenda(
         actualizado.id,
         actualizado,
       );
 
       // 3) VIS/LOS: marca como RESUELTO si corresponde
-      if (esVisOLos && t.ageIdTipo != 0) {
-        await visProvider.updateVisById(t.ageIdTipo, 'RESUELTO', solucionFinal);
+      if (esVisOLos && t.idTipo != 0) {
+        await visProvider.updateVisById(t.idTipo, 'RESUELTO', solucionFinal);
       }
 
       // 4) SOPORTE si aplica
-      if (t.soporteId != 0) {
-        await soporteProvider.actualizarEstadoSop(t.soporteId, {
+      if (t.idSop != 0) {
+        await soporteProvider.actualizarEstadoSop(t.idSop, {
           'reg_sop_estado': 'RESUELTO',
           'reg_sop_sol_det': solucionFinal,
         });
@@ -367,7 +367,7 @@ class EditarTrabajoController extends GetxController {
         socketService.emit('trabajoCulminado', {'tecnicoId': userId});
       }
 
-      SnackbarService.success('✅ Trabajo actualizado correctamente');
+      SnackbarService.success('✅ Agenda actualizado correctamente');
       await Future.delayed(const Duration(milliseconds: 250));
       Get.offAllNamed('/tecnico/mi-agenda');
     } catch (e) {

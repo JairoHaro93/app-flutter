@@ -11,7 +11,7 @@ import 'package:redecom_app/src/pages/login/login_page.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/mi_agenda_page.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/detalle_instalacion_page.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/detalle_soporte_page.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/editar_trabajo_page.dart';
+import 'package:redecom_app/src/pages/mi%20agenda/editar_agenda_page.dart';
 import 'package:redecom_app/src/pages/perfil/perfil_info_page.dart';
 
 // Bindings centralizados
@@ -84,8 +84,8 @@ class MyApp extends StatelessWidget {
         // Edición de trabajo
         GetPage(
           name: "/editar-trabajo",
-          page: () => const EditarTrabajoPage(),
-          binding: EditarTrabajoBinding(),
+          page: () => const EditarAgendaPage(),
+          binding: EditarAgendaBinding(),
         ),
       ],
 

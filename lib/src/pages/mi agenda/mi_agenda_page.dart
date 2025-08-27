@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/pages/mi%20agenda/mi_agenda_controller.dart';
 
 class MiAgendaPage extends GetView<MiAgendaController> {
@@ -34,7 +34,7 @@ class MiAgendaPage extends GetView<MiAgendaController> {
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: controller.trabajos.length,
             itemBuilder: (context, index) {
-              final Trabajo t = controller.trabajos[index];
+              final Agenda t = controller.trabajos[index];
               final tipo = t.tipo.toUpperCase();
 
               return Card(

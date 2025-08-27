@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/instalacion_mysql.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/providers/instalacion_provider.dart';
@@ -29,8 +29,8 @@ class DetalleInstalacionController extends GetxController {
   final _busy = false.obs;
   final _busyImgs = false.obs;
 
-  // Trabajo recibido por args
-  late final Trabajo trabajo;
+  // Agenda recibido por args
+  late final Agenda trabajo;
 
   // ===== Campos mapeados (listos para UI) =====
   final clienteCedula = ''.obs;
@@ -53,24 +53,24 @@ class DetalleInstalacionController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    if (args is Trabajo) {
+    if (args is Agenda) {
       trabajo = args;
     } else {
       SnackbarService.error('No se recibió el trabajo para la instalación');
-      trabajo = Trabajo(
+      trabajo = Agenda(
         id: 0,
         tipo: '',
         subtipo: '',
         estado: '',
-        ordenInstalacion: 0,
-        soporteId: 0,
-        ageIdTipo: 0,
+        ordIns: 0,
+        idSop: 0,
+        idTipo: 0,
         horaInicio: '',
         horaFin: '',
         fecha: '',
         vehiculo: '',
         tecnico: '',
-        observaciones: '',
+        diagnostico: '',
         coordenadas: '',
         telefono: '',
       );
@@ -80,7 +80,7 @@ class DetalleInstalacionController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    if (trabajo.ordenInstalacion != 0) {
+    if (trabajo.ordIns != 0) {
       cargarInstalacionYCliente();
     }
   }
@@ -99,12 +99,12 @@ class DetalleInstalacionController extends GetxController {
 
       // 1) Instalación (MySQL)
       final inst = await instalacionProvider.getInstalacionMysqlByOrdIns(
-        trabajo.ordenInstalacion,
+        trabajo.ordIns,
       );
       instalacionMysql.value = inst;
 
       // 2) Cliente (SQL Server)
-      final ordInsStr = inst?.ordIns ?? trabajo.ordenInstalacion.toString();
+      final ordInsStr = inst?.ordIns ?? trabajo.ordIns.toString();
       final ordInsInt = int.tryParse(ordInsStr) ?? 0;
 
       if (ordInsInt != 0) {
@@ -150,7 +150,7 @@ class DetalleInstalacionController extends GetxController {
     _busyImgs.value = true;
     isLoadingImgs.value = true;
     try {
-      final map = await imagenesProvider.getImagenesPorTrabajo(
+      final map = await imagenesProvider.getImagenesPorAgenda(
         'neg_t_instalaciones',
         inst.ordIns, // ID debe ser string
       );

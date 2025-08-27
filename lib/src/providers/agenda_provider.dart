@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/environmets/environment.dart';
-import 'package:redecom_app/src/models/trabajo.dart';
+import 'package:redecom_app/src/models/agenda.dart';
 
 class AgendaProvider extends GetConnect {
   final String _urlBase = "${Environment.API_URL}agenda";
@@ -39,7 +39,7 @@ class AgendaProvider extends GetConnect {
   }
 
   /// Obtiene la agenda del técnico autenticado (o de [tecnicoId] si se pasa).
-  Future<List<Trabajo>> getAgendaTec([int? tecnicoId]) async {
+  Future<List<Agenda>> getAgendaTec([int? tecnicoId]) async {
     final box = GetStorage();
     final id = tecnicoId ?? box.read('usuario_id');
     if (id == null) {
@@ -64,11 +64,11 @@ class AgendaProvider extends GetConnect {
 
     if (code >= 200 && code < 300 && body != null) {
       if (body is List) {
-        return body.map<Trabajo>((e) => Trabajo.fromJson(e)).toList();
+        return body.map<Agenda>((e) => Agenda.fromJson(e)).toList();
       }
       if (body is Map && body['data'] is List) {
         return (body['data'] as List)
-            .map<Trabajo>((e) => Trabajo.fromJson(e))
+            .map<Agenda>((e) => Agenda.fromJson(e))
             .toList();
       }
       throw Exception('Formato de respuesta no esperado al obtener la agenda.');
@@ -102,9 +102,9 @@ class AgendaProvider extends GetConnect {
     );
   }
 
-  /// Wrapper conveniente: acepta directamente un [Trabajo] y construye el payload
+  /// Wrapper conveniente: acepta directamente un [Agenda] y construye el payload
   /// vía `t.toSolucionJson()`.
-  Future<void> actualizarAgendaSolucionByTrabajo(int ageId, Trabajo t) async {
+  Future<void> actualizarAgendaSolucionByAgenda(int ageId, Agenda t) async {
     await actualizarAgendaSolucion(ageId, t.toSolucionJson());
   }
 

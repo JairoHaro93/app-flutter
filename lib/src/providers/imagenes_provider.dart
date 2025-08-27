@@ -42,7 +42,7 @@ class ImagenesProvider extends GetConnect {
 
   /// Descarga imágenes por tabla e id.
   /// Ej: tabla='neg_t_instalaciones', id=ord_ins (String o int)
-  Future<Map<String, ImagenInstalacion>> getImagenesPorTrabajo(
+  Future<Map<String, ImagenInstalacion>> getImagenesPorAgenda(
     String tabla,
     Object trabajoId,
   ) async {
@@ -126,7 +126,7 @@ class ImagenesProvider extends GetConnect {
     }
 
     // ignore: avoid_print
-    print('❌ Error getImagenesPorTrabajo [$code]');
+    print('❌ Error getImagenesPorAgenda [$code]');
     // ignore: avoid_print
     print('❌ BODY: ${resp.body}');
     throw Exception('Error al obtener imágenes');

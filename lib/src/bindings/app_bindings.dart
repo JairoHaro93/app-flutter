@@ -1,6 +1,6 @@
 // lib/src/bindings/app_bindings.dart
 import 'package:get/get.dart';
-import 'package:redecom_app/src/pages/mi%20agenda/editar_trabajo_controller.dart';
+import 'package:redecom_app/src/pages/mi%20agenda/editar_agenda_controller.dart';
 
 // Servicios globales
 import 'package:redecom_app/src/utils/auth_service.dart';
@@ -51,11 +51,11 @@ class DetalleSoporteBinding extends Bindings {
 }
 
 // binding
-class EditarTrabajoBinding extends Bindings {
+class EditarAgendaBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<EditarTrabajoController>(
-      () => EditarTrabajoController(),
+    Get.lazyPut<EditarAgendaController>(
+      () => EditarAgendaController(),
       fenix: true,
     );
   }
