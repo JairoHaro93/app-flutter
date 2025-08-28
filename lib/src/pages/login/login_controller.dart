@@ -1,7 +1,8 @@
+// lib/src/pages/login/login_controller.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:jwt_decode/jwt_decode.dart';
+
 import 'package:redecom_app/src/models/response_api.dart';
 import 'package:redecom_app/src/models/user.dart';
 import 'package:redecom_app/src/providers/login_provider.dart';
@@ -10,58 +11,100 @@ import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 
 class LoginController extends GetxController {
-  TextEditingController usuarioController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+  // Text controllers
+  final usuarioController = TextEditingController();
+  final passwordController = TextEditingController();
 
-  LoginProvider loginProvider = LoginProvider();
+  // Estado para la UI
+  final isLoading = false.obs;
+  final passwordVisible = false.obs;
 
-  void login() async {
-    String usuario = usuarioController.text.trim();
-    String password = passwordController.text.trim();
+  // Dependencias
+  late final LoginProvider _loginProvider;
+  late final AuthService _auth;
+  late final SocketService _socket;
 
-    if (!await isValidForm(usuario, password)) return;
+  @override
+  void onInit() {
+    super.onInit();
+    _loginProvider =
+        Get.isRegistered<LoginProvider>()
+            ? Get.find<LoginProvider>()
+            : LoginProvider();
+    _auth = Get.find<AuthService>();
+    _socket = Get.find<SocketService>();
+  }
 
-    ResponseApi responseApi = await loginProvider.login(usuario, password);
-    debugPrint('Respuesta del backend: ${responseApi.toJson()}');
+  @override
+  void onClose() {
+    usuarioController.dispose();
+    passwordController.dispose();
+    super.onClose();
+  }
 
-    if (responseApi.success == true) {
-      String token = responseApi.token ?? '';
+  Future<void> login() async {
+    if (isLoading.value) return;
 
-      if (Jwt.isExpired(token)) {
-        SnackbarService.error('Tu sesión ha expirado, vuelve a iniciar sesión');
+    final usuario = usuarioController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (usuario.isEmpty) {
+      SnackbarService.warning('Ingresa el usuario');
+      return;
+    }
+    if (password.isEmpty) {
+      SnackbarService.warning('Ingresa la contraseña');
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final ResponseApi r = await _loginProvider.login(usuario, password);
+
+      if (r.success != true) {
+        SnackbarService.warning(r.message ?? 'Credenciales inválidas');
         return;
       }
 
-      Map<String, dynamic> decodedToken = Jwt.parseJwt(token);
-      User user = User.fromJson(decodedToken);
+      final token = (r.token ?? '').trim();
+      if (token.isEmpty) {
+        SnackbarService.error('Token vacío en la respuesta');
+        return;
+      }
 
-      // 1️⃣ Guardar sesión
-      await Get.find<AuthService>().login(user, token);
+      // Valida expiración y parseo
+      try {
+        if (Jwt.isExpired(token)) {
+          SnackbarService.error(
+            'Tu sesión ha expirado, vuelve a iniciar sesión',
+          );
+          return;
+        }
+      } catch (_) {
+        SnackbarService.error('Token inválido');
+        return;
+      }
 
-      // 2️⃣ Inicializar el socket con usuario_id ya disponible
-      await Get.find<SocketService>().init();
+      Map<String, dynamic> payload;
+      try {
+        payload = Jwt.parseJwt(token);
+      } catch (_) {
+        SnackbarService.error('No se pudo leer el token');
+        return;
+      }
 
-      goToHomePage();
-    } else {
-      SnackbarService.warning(responseApi.message ?? 'Error desconocido');
+      final user = User.fromJson(payload);
+
+      // Guarda sesión e inicia socket
+      await _auth.login(user, token);
+      await _socket.init();
+
+      // Navega a Home
+      Get.offAllNamed('/home');
+    } catch (e) {
+      SnackbarService.error('Error de autenticación: $e');
+    } finally {
+      isLoading.value = false;
     }
-  }
-
-  Future<bool> isValidForm(String usuario, String password) async {
-    if (usuario.isEmpty) {
-      SnackbarService.warning('Ingresa el usuario');
-      return false;
-    }
-
-    if (password.isEmpty) {
-      SnackbarService.warning('Ingresa la contraseña');
-      return false;
-    }
-
-    return true;
-  }
-
-  void goToHomePage() {
-    Get.offAllNamed('/home');
   }
 }

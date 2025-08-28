@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
@@ -5,16 +6,17 @@ import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class MiAgendaController extends GetxController {
-  // ✅ registra el provider con Get para evitar múltiples instancias y asegurar lifecycle
-  final AgendaProvider _agendaProvider = Get.put(
-    AgendaProvider(),
-    permanent: true,
-  );
+  // Provider local (no permanente; el controller controla su ciclo de vida)
+  final AgendaProvider _agendaProvider = Get.put(AgendaProvider());
 
   late final SocketService _socket;
 
   final trabajos = <Agenda>[].obs;
   final isLoading = false.obs;
+
+  // Si llega un evento mientras se está cargando,
+  // marcamos un reload pendiente para ejecutar al finalizar.
+  bool _pendingReload = false;
 
   @override
   void onInit() {
@@ -22,35 +24,38 @@ class MiAgendaController extends GetxController {
     _socket = Get.find<SocketService>();
     _escucharSockets();
 
-    // 🔎 log de arranque
-    // ignore: avoid_print
-    print('📅 MiAgendaController.onInit -> cargarAgenda()');
+    if (kDebugMode)
+      debugPrint('📅 MiAgendaController.onInit -> cargarAgenda()');
     cargarAgenda();
   }
 
   @override
   void onClose() {
-    _socket.off('trabajoAgendado');
+    // Desuscribir TODOS los eventos que registramos
+    const posibles = ['trabajoAgendadoTecnico', 'trabajoAgendado'];
+    for (final ev in posibles) {
+      _socket.off(ev);
+    }
     super.onClose();
   }
 
   Future<void> cargarAgenda() async {
     if (isLoading.value) {
-      // ignore: avoid_print
-      print('⏳ cargarAgenda: ya hay una carga en curso, saliendo...');
+      // Llega otra petición (por socket/usuario) mientras carga
+      _pendingReload = true; // agenda un reload al finalizar
+      if (kDebugMode)
+        debugPrint('⏳ cargarAgenda: ya cargando; marcar reload pendiente');
       return;
     }
 
     isLoading.value = true;
-
-    // ignore: avoid_print
-    print('➡️ cargarAgenda: solicitando trabajos...');
+    if (kDebugMode) debugPrint('➡️ cargarAgenda: solicitando trabajos...');
 
     try {
       final lista = await _agendaProvider.getAgendaTec();
 
-      // ignore: avoid_print
-      print('✅ cargarAgenda: recibidos ${lista.length} trabajos');
+      if (kDebugMode)
+        debugPrint('✅ cargarAgenda: recibidos ${lista.length} trabajos');
 
       // Orden por fecha y luego por hora de inicio
       lista.sort((a, b) {
@@ -66,49 +71,62 @@ class MiAgendaController extends GetxController {
 
       trabajos.assignAll(lista);
     } catch (e, st) {
-      // ignore: avoid_print
-      print('❌ cargarAgenda ERROR: $e\n$st');
+      if (kDebugMode) debugPrint('❌ cargarAgenda ERROR: $e\n$st');
       SnackbarService.error(e.toString());
     } finally {
       isLoading.value = false;
-      // ignore: avoid_print
-      print('🏁 cargarAgenda: finalizado (isLoading=false)');
+      if (kDebugMode)
+        debugPrint('🏁 cargarAgenda: finalizado (isLoading=false)');
+
+      // Si quedó un reload pendiente por eventos concurrentes, ejecútalo una vez.
+      if (_pendingReload) {
+        _pendingReload = false;
+        if (kDebugMode) debugPrint('🔁 Ejecutando reload pendiente…');
+        // No esperamos el Future para no bloquear; lanza una nueva carga.
+        // ignore: discarded_futures
+        cargarAgenda();
+      }
     }
   }
 
   void _escucharSockets() {
-    // Angular emite 'trabajoAgendadoTecnico'
-    const posibles = [
-      'trabajoAgendadoTecnico',
-      'trabajoAgendado',
-    ]; // escucha ambos por ahora
+    // En tu backend/Angular he visto 'trabajoAgendadoTecnico' y 'trabajoAgendado'
+    const posibles = ['trabajoAgendadoTecnico', 'trabajoAgendado'];
+
     for (final ev in posibles) {
-      _socket.off(ev);
+      _socket.off(ev); // evita duplicados si el controller se re-crea
       _socket.on(ev, (dynamic _) {
-        // ignore: avoid_print
-        print('🔔 socket "$ev" -> recargar agenda');
-        cargarAgenda();
+        if (kDebugMode) debugPrint('🔔 socket "$ev" -> recargar agenda');
         SnackbarService.success('Agenda actualizada');
+        // Si ya está cargando, se marcará _pendingReload dentro de cargarAgenda()
+        // y se recargará automáticamente al terminar.
+        // ignore: discarded_futures
+        cargarAgenda();
       });
     }
   }
 
-  DateTime _parseFecha(String iso) {
+  DateTime _parseFecha(String? iso) {
     try {
-      return DateTime.parse(iso);
+      if (iso == null || iso.isEmpty)
+        return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime.parse(
+        iso,
+      ); // asume ISO; si tu backend envía otro formato, ajusta aquí
     } catch (_) {
       return DateTime.fromMillisecondsSinceEpoch(0);
     }
   }
 
-  int _parseHora(String hhmm) {
+  int _parseHora(String? hhmm) {
     try {
+      if (hhmm == null || hhmm.isEmpty) return 24 * 60; // inválida -> al final
       final parts = hhmm.split(':');
       final h = int.parse(parts[0]);
       final m = parts.length > 1 ? int.parse(parts[1]) : 0;
       return h * 60 + m;
     } catch (_) {
-      return -1;
+      return 24 * 60; // inválida -> al final
     }
   }
 }

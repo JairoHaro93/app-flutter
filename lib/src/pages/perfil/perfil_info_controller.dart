@@ -1,28 +1,44 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:redecom_app/src/models/response_api.dart';
+
 import 'package:redecom_app/src/models/user.dart';
 import 'package:redecom_app/src/providers/login_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
+import 'package:redecom_app/src/utils/auth_service.dart';
 
 class PerfilInfoController extends GetxController {
-  User user = User.fromJson(GetStorage().read('user'));
+  final _box = GetStorage();
+  final _auth = Get.find<AuthService>();
+  final _loginProvider = Get.put(LoginProvider());
 
-  final LoginProvider loginProvider = LoginProvider();
+  late final User user;
+  final isLoggingOut = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    user = User.fromJson(_box.read('user') ?? {});
+  }
 
   Future<void> signOut() async {
-    ResponseApi responseApi = await loginProvider.logout(user.id ?? 0);
+    if (isLoggingOut.value) return;
+    isLoggingOut.value = true;
 
-    // Si quieres verificar si fue exitoso, puedes usar algo como:
-    if (responseApi.success == true) {
-      GetStorage().remove('user');
-      Get.offNamedUntil('/', (route) => false); // Redirige y limpia historial
-    } else {
-      SnackbarService.error('No se pudo cerrar la sesión');
+    final uid = _auth.userId;
+    if (uid != null) {
+      try {
+        final r = await _loginProvider.logout(uid);
+        if (r.success != true && r.message != null) {
+          SnackbarService.warning(r.message!);
+        }
+      } catch (_) {}
     }
+
+    await _auth
+        .logout(); // <- cierra socket + limpia claves + Get.offAllNamed('/')
+
+    isLoggingOut.value = false;
   }
 
-  void actionBackAppBAr() {
-    Get.toNamed('/home');
-  }
+  void actionBackAppBAr() => Get.back();
 }

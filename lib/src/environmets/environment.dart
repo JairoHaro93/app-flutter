@@ -2,7 +2,7 @@
 class Environment {
   // ===== Selección de entorno =====
   // Cambia a true para producción
-  static const bool useProd = false;
+  static const bool useProd = true;
 
   // IPs por entorno
   static const String API_IP_DEV = "192.168.0.181";

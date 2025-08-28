@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -9,48 +10,55 @@ class SocketService extends GetxService {
 
   bool get isConnected => _socket?.connected == true;
 
+  // ⚠️ No auto-llamar init en onInit().
+  // Espera a que el LoginController te invoque tras guardar usuario_id.
   @override
-  void onInit() {
-    super.onInit();
-    // inicializa automáticamente
-    // ignore: discarded_futures
-    init();
+  void onClose() {
+    disposeSocket();
+    super.onClose();
   }
 
+  /// Inicializa y conecta el socket usando el usuario_id guardado en GetStorage.
   Future<SocketService> init() async {
-    if (_initialized) return this;
-    _initialized = true;
+    if (_initialized && _socket != null) return this;
+    final box = GetStorage();
+    final userId = box.read('usuario_id');
 
-    final userId = GetStorage().read('usuario_id');
     if (userId == null) {
-      // ignore: avoid_print
-      print('⚠️ Conexión sin usuario_id. No se conectará socket.');
+      // No hay sesión aún (login no hecho)
       return this;
     }
 
+    _initialized = true;
+
     final url = '${Environment.API_WEBSOKETS}?usuario_id=$userId';
-    // ignore: avoid_print
-    print('🔌 Conectando socket a: $url');
 
-    _socket = IO.io(url, {
-      'transports': ['websocket'],
-      'autoConnect': true,
-      'reconnection': true,
-      'reconnectionAttempts': 10,
-      'reconnectionDelay': 1000,
-    });
+    _socket = IO.io(
+      url,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .enableReconnection() // reconexión habilitada
+          .setReconnectionAttempts(10)
+          .setReconnectionDelay(1000)
+          .enableAutoConnect() // se conecta automáticamente
+          .build(),
+    );
 
+    // Handlers
     _socket!.onConnect((_) {
-      // ignore: avoid_print
-      print('✅ Socket conectado (usuario_id: $userId)');
+      if (kDebugMode) debugPrint('✅ Socket conectado (usuario_id: $userId)');
     });
+
     _socket!.onDisconnect((_) {
-      // ignore: avoid_print
-      print('🔌 Socket desconectado');
+      if (kDebugMode) debugPrint('🔌 Socket desconectado');
     });
-    _socket!.onError((data) {
-      // ignore: avoid_print
-      print('⛔ Socket error: $data');
+
+    _socket!.onConnectError((err) {
+      if (kDebugMode) debugPrint('⛔ Socket connect error: $err');
+    });
+
+    _socket!.onError((err) {
+      if (kDebugMode) debugPrint('⛔ Socket error: $err');
     });
 
     return this;
@@ -59,17 +67,12 @@ class SocketService extends GetxService {
   // ---------- API de conveniencia ----------
   void emit(String event, dynamic data) {
     final s = _socket;
-    if (s == null) {
-      // ignore: avoid_print
-      print('⚠️ No se pudo emitir "$event": socket no inicializado');
+    if (s == null || s.disconnected) {
+      if (kDebugMode)
+        debugPrint('⚠️ No se pudo emitir "$event": socket no listo');
       return;
     }
-    if (s.connected) {
-      s.emit(event, data);
-    } else {
-      // ignore: avoid_print
-      print('⚠️ No se pudo emitir "$event": socket no conectado');
-    }
+    s.emit(event, data);
   }
 
   void on(String event, void Function(dynamic) handler) {

@@ -8,33 +8,75 @@ import 'package:redecom_app/src/utils/socket_service.dart';
 class AuthService extends GetxService {
   final _storage = GetStorage();
 
+  // Claves de storage (evita typos)
+  static const _kToken = 'token';
+  static const _kUser = 'user';
+  static const _kUserId = 'usuario_id';
+  static const _kFirstInstall = 'first_install_done';
+
   User? get currentUser {
-    final data = _storage.read('user');
+    final data = _storage.read(_kUser);
     return data != null ? User.fromJson(data) : null;
   }
 
-  String? get token => _storage.read('token');
-  int? get userId => _storage.read('usuario_id');
+  String? get token => _storage.read(_kToken);
+  int? get userId => _storage.read(_kUserId);
 
-  bool get isLoggedIn => token != null && !Jwt.isExpired(token!);
-
-  Future<void> login(User user, String token) async {
-    user.sessionToken = token;
-
-    _storage.write('token', token);
-    _storage.write('user', user.toJson());
-    if (user.id != null) {
-      _storage.write('usuario_id', user.id);
+  bool get isLoggedIn {
+    final t = token;
+    if (t == null || t.isEmpty) return false;
+    try {
+      return !Jwt.isExpired(t);
+    } catch (_) {
+      return false;
     }
   }
 
-  void logout() {
-    _storage.erase();
+  Map<String, String> get authHeader {
+    final t = token;
+    return t != null && t.isNotEmpty ? {'Authorization': 'Bearer $t'} : {};
+  }
 
+  Future<void> login(User user, String sessionToken) async {
+    user.sessionToken = sessionToken;
+
+    await _storage.write(_kToken, sessionToken);
+    await _storage.write(_kUser, user.toJson());
+    if (user.id != null) {
+      await _storage.write(_kUserId, user.id);
+    }
+  }
+
+  /// Refresca el usuario en storage (por si cambias nombre, roles, etc.)
+  Future<void> refreshUser(User user) async {
+    await _storage.write(_kUser, user.toJson());
+    if (user.id != null) {
+      await _storage.write(_kUserId, user.id);
+    }
+  }
+
+  /// Lanza si no hay sesión válida (útil en providers/controladores)
+  void requireAuth() {
+    if (!isLoggedIn) {
+      Get.offAllNamed('/'); // o Routes.login si usas constantes
+      throw Exception('Sesión no válida');
+    }
+  }
+
+  Future<void> logout() async {
+    // 1) Cierra socket si existe
     if (Get.isRegistered<SocketService>()) {
-      Get.find<SocketService>().disposeSocket();
+      try {
+        Get.find<SocketService>().disposeSocket();
+      } catch (_) {}
     }
 
-    Get.offAllNamed('/login');
+    // 2) Limpia SOLO claves de sesión (no borres first_install_done)
+    await _storage.remove(_kToken);
+    await _storage.remove(_kUser);
+    await _storage.remove(_kUserId);
+
+    // 3) Navega al login (en tu app es '/')
+    Get.offAllNamed('/'); // o Routes.login
   }
 }

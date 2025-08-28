@@ -1,38 +1,76 @@
+import 'dart:convert';
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/response_api.dart';
-import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class LoginProvider extends GetConnect {
-  final String _url = "${Environment.API_URL}login";
+  LoginProvider() {
+    httpClient.baseUrl = Environment.API_URL; // termina en /api/
+    httpClient.timeout = const Duration(seconds: 20);
 
-  Future<ResponseApi> login(String usuario, String password) async {
-    return await _postRequest('$_url/app', {
-      'usuario': usuario,
-      'password': password,
+    httpClient.addRequestModifier<dynamic>((req) {
+      // Aceptamos JSON; GetConnect pondrá Content-Type adecuado si body es Map
+      req.headers['Accept'] = 'application/json';
+      return req;
     });
   }
 
-  Future<ResponseApi> logout(int usuarioId) async {
-    return await _postRequest('$_url/notapp', {'usuario_id': usuarioId});
+  Future<ResponseApi> login(String usuario, String password) {
+    return _postJson('login/app', {'usuario': usuario, 'password': password});
   }
 
-  Future<ResponseApi> _postRequest(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
-    final Response response = await post(
-      endpoint,
-      body,
-      headers: {'Content-Type': 'application/json'},
-    );
+  Future<ResponseApi> logout(int usuarioId) {
+    return _postJson('login/notapp', {'usuario_id': usuarioId});
+  }
 
-    if (response.body == null) {
-      SnackbarService.warning('No se pudo ejecutar la petición');
+  // ------------------ PRIVADO ------------------
 
-      return ResponseApi();
+  Future<ResponseApi> _postJson(String path, Map<String, dynamic> body) async {
+    try {
+      final resp = await post(path, body);
+
+      // Si el servidor no respondió
+      if (resp.statusCode == null) {
+        return ResponseApi(
+          success: false,
+          message: 'Sin respuesta del servidor',
+        );
+      }
+
+      // Intenta mapear el body
+      final parsed = _parseBody(resp.body, resp.bodyString);
+
+      // 200–299 => OK
+      if ((resp.statusCode ?? 0) >= 200 && (resp.statusCode ?? 0) < 300) {
+        return ResponseApi.fromJson(parsed ?? {});
+      }
+
+      // Errores HTTP => trata de extraer mensaje útil
+      final msg =
+          (parsed?['message'] ??
+                  parsed?['error'] ??
+                  'Error HTTP ${resp.statusCode}')
+              .toString();
+      return ResponseApi(success: false, message: msg);
+    } on TimeoutException {
+      return ResponseApi(success: false, message: 'Tiempo de espera agotado');
+    } on Exception catch (e) {
+      return ResponseApi(success: false, message: 'Error de red: $e');
     }
+  }
 
-    return ResponseApi.fromJson(response.body);
+  Map<String, dynamic>? _parseBody(dynamic body, String? bodyString) {
+    if (body is Map<String, dynamic>) return body;
+    if (body is Map) return body.cast<String, dynamic>();
+    if (bodyString != null && bodyString.isNotEmpty) {
+      try {
+        final decoded = json.decode(bodyString);
+        if (decoded is Map<String, dynamic>) return decoded;
+        if (decoded is Map) return decoded.cast<String, dynamic>();
+      } catch (_) {}
+    }
+    return null;
   }
 }

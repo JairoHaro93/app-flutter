@@ -5,7 +5,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-// Pages
+// PAGES
 import 'package:redecom_app/src/pages/home/home_page.dart';
 import 'package:redecom_app/src/pages/login/login_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_page.dart';
@@ -14,19 +14,38 @@ import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_page.dart';
 import 'package:redecom_app/src/pages/perfil/perfil_info_page.dart';
 
-// Bindings centralizados
+// BINDINGS
 import 'package:redecom_app/src/bindings/app_bindings.dart';
+
+class Routes {
+  static const login = '/';
+  static const home = '/home';
+  static const perfilInfo = '/home/perfil/info';
+  static const miAgenda = '/tecnico/mi-agenda';
+  static const detalleInstalacion = '/detalle-instalacion';
+  static const detalleSoporte = '/detalle-soporte';
+  static const editarTrabajo = '/editar-trabajo';
+}
+
+class AuthGuard extends GetMiddleware {
+  @override
+  RouteSettings? redirect(String? route) {
+    final token = (GetStorage().read('token') ?? '').toString();
+    if (token.isEmpty && route != Routes.login) {
+      return const RouteSettings(name: Routes.login);
+    }
+    return null;
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
 
   final box = GetStorage();
-
-  // Fuerza Login en primera instalación
   final isFirstInstall = box.read('first_install_done') != true;
   if (isFirstInstall) {
-    await box.erase(); // limpia cualquier resto restaurado por el SO
+    await box.erase();
     await box.write('first_install_done', true);
   }
 
@@ -44,52 +63,67 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final box = GetStorage();
     final isLoggedIn = (box.read('token') ?? '').toString().isNotEmpty;
-
-    final initialRoute = isFirstInstall ? '/' : (isLoggedIn ? '/home' : '/');
+    final initialRoute =
+        isFirstInstall
+            ? Routes.login
+            : (isLoggedIn ? Routes.home : Routes.login);
 
     return GetMaterialApp(
-      title: "Redecom_App",
+      title: 'Redecom App',
       debugShowCheckedModeBanner: false,
 
-      // Registra servicios/controladores globales
       initialBinding: AppInitialBinding(),
-
-      // Ruta inicial (Login en primera instalación)
       initialRoute: initialRoute,
 
-      getPages: [
-        GetPage(name: "/", page: () => LoginPage()),
-        GetPage(name: "/home", page: () => HomePage()),
-        GetPage(name: "/home/perfil/info", page: () => PerfilInfoPage()),
+      // Transición por defecto (opcional)
+      defaultTransition: Transition.cupertino,
 
-        // Agenda con binding
+      getPages: [
+        GetPage(name: Routes.login, page: () => LoginPage()),
         GetPage(
-          name: "/tecnico/mi-agenda",
+          name: Routes.home,
+          page: () => HomePage(),
+          middlewares: [AuthGuard()],
+        ),
+        GetPage(
+          name: Routes.perfilInfo,
+          page: () => PerfilInfoPage(),
+          middlewares: [AuthGuard()],
+        ),
+
+        GetPage(
+          name: Routes.miAgenda,
           page: () => const MiAgendaPage(),
           binding: MiAgendaBinding(),
+          middlewares: [AuthGuard()],
         ),
-
-        // Detalles con bindings
         GetPage(
-          name: "/detalle-instalacion",
+          name: Routes.detalleInstalacion,
           page: () => const DetalleInstalacionPage(),
           binding: DetalleInstalacionBinding(),
+          middlewares: [AuthGuard()],
         ),
         GetPage(
-          name: "/detalle-soporte",
+          name: Routes.detalleSoporte,
           page: () => const DetalleSoportePage(),
           binding: DetalleSoporteBinding(),
+          middlewares: [AuthGuard()],
         ),
-
-        // Edición de trabajo
         GetPage(
-          name: "/editar-trabajo",
+          name: Routes.editarTrabajo,
           page: () => const EditarAgendaPage(),
           binding: EditarAgendaBinding(),
+          middlewares: [AuthGuard()],
         ),
       ],
 
-      // Tema claro y fondo blanco consistente
+      unknownRoute: GetPage(
+        name: '/404',
+        page:
+            () =>
+                const Scaffold(body: Center(child: Text('Ruta no encontrada'))),
+      ),
+
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.white,
