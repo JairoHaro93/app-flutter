@@ -2,7 +2,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:image_picker/image_picker.dart';
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
@@ -14,7 +14,7 @@ class EditarTrabajoController extends GetxController {
   // --------- Dependencias ---------
   final _imgsProv = ImagenesProvider();
   final _agendaProv = AgendaProvider();
-
+  final _picker = ImagePicker();
   // --------- Estado principal ---------
   final trabajo = Rxn<Agenda>();
   final isSaving = false.obs;
@@ -72,6 +72,45 @@ class EditarTrabajoController extends GetxController {
       coordCtrl.text = args.coordenadas.trim(); // 👈 prefill si aplica
     } else {
       SnackbarService.warning('No se recibió el trabajo a editar');
+    }
+  }
+
+  Future<File?> _pickImage() async {
+    try {
+      // Mostrar opciones al usuario
+      final source = await Get.bottomSheet<ImageSource>(
+        SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Cámara'),
+                onTap: () => Get.back(result: ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galería'),
+                onTap: () => Get.back(result: ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.white,
+      );
+
+      if (source == null) return null; // canceló
+
+      final XFile? x = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1920,
+      );
+      if (x == null) return null; // canceló en picker
+
+      return File(x.path);
+    } catch (e) {
+      SnackbarService.error('No se pudo abrir el selector: $e');
+      return null;
     }
   }
 
@@ -258,14 +297,6 @@ class EditarTrabajoController extends GetxController {
     } finally {
       isSaving.value = false;
     }
-  }
-
-  // ---------- Picker placeholder ----------
-  Future<File?> _pickImage() async {
-    // Aquí conecta tu picker real si ya lo tienes (image_picker, file_picker, etc.)
-    // return await ImagePicker().pickImage(...).then((x) => x != null ? File(x.path) : null);
-    SnackbarService.warning('Abrir picker: aún no conectado');
-    return null;
   }
 
   Future<void> guardarTodo() async {
