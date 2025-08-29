@@ -1,15 +1,17 @@
 import 'package:get/get.dart';
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
+import 'package:redecom_app/src/models/soporte.dart';
 import 'package:redecom_app/src/providers/clientes_provider.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
+import 'package:redecom_app/src/providers/soporte_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 
 class DetalleSoporteController extends GetxController {
   // Providers
   final clientesProvider = ClientesProvider();
   final imagenesProvider = ImagenesProvider();
-
+  final soporteProvider = SoporteProvider();
   // Agenda recibido por args
   late final Agenda agenda;
 
@@ -32,6 +34,9 @@ class DetalleSoporteController extends GetxController {
   final clienteCortado = ''.obs;
   final clienteCoordenadas = ''.obs;
   final clienteFechaInstalacion = ''.obs;
+
+  final soporte = Rxn<Soporte>();
+  final soporteComentario = ''.obs;
 
   // Imágenes VIS/LOS (id = idTipo)
   final imagenesVis = <String, ImagenInstalacion>{}.obs;
@@ -57,7 +62,6 @@ class DetalleSoporteController extends GetxController {
       agenda = Agenda(
         id: 0,
         tipo: '',
-        subtipo: '',
         estado: '',
         ordIns: 0,
         idSop: 0,
@@ -88,6 +92,7 @@ class DetalleSoporteController extends GetxController {
         _cargarCliente(),
         _cargarImagenesVis(force: true),
         _cargarImagenesInstalacion(force: true),
+        _cargarSoporte(), // 👈 NUEVO
       ]);
     } catch (e) {
       // ignore: avoid_print
@@ -95,6 +100,26 @@ class DetalleSoporteController extends GetxController {
       SnackbarService.error('No se pudo cargar VIS/LOS');
     } finally {
       _busy.value = false;
+    }
+  }
+
+  Future<void> _cargarSoporte() async {
+    final idSop = agenda.idSop;
+    if (idSop == 0) {
+      soporte.value = null;
+      soporteComentario.value = '';
+      return;
+    }
+    try {
+      final s = await soporteProvider.getById(idSop);
+      soporte.value = s;
+      soporteComentario.value =
+          s?.comentarioCliente.trim().isEmpty == true
+              ? ''
+              : s!.comentarioCliente.trim();
+    } catch (_) {
+      soporte.value = null;
+      soporteComentario.value = '';
     }
   }
 

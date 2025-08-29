@@ -1,7 +1,11 @@
+// lib/src/pages/mi_agenda/detalle_instalacion_controller.dart
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:get/get.dart';
 import 'package:redecom_app/src/models/agenda.dart';
-import 'package:redecom_app/src/models/instalacion_mysql.dart';
+
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
+import 'package:redecom_app/src/models/instalacion.dart';
+
 import 'package:redecom_app/src/providers/instalacion_provider.dart';
 import 'package:redecom_app/src/providers/clientes_provider.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
@@ -13,14 +17,14 @@ class DetalleInstalacionController extends GetxController {
   final clientesProvider = ClientesProvider();
   final imagenesProvider = ImagenesProvider();
 
-  // Estado bruto (respuestas completas)
-  final instalacionMysql = Rxn<InstalacionMysql>();
+  // Estado bruto
+  final instalacion = Rxn<Instalacion>();
   final clienteJson = Rxn<Map<String, dynamic>>();
 
-  // Estado de imágenes (campo -> objeto con url/ruta)
+  // Imágenes
   final imagenesInstalacion = <String, ImagenInstalacion>{}.obs;
 
-  // Estado de carga
+  // Loading flags
   final isLoadingInst = false.obs;
   final isLoadingCliente = false.obs;
   final isLoadingImgs = false.obs;
@@ -29,10 +33,10 @@ class DetalleInstalacionController extends GetxController {
   final _busy = false.obs;
   final _busyImgs = false.obs;
 
-  // Agenda recibido por args
+  // Agenda recibido
   late final Agenda trabajo;
 
-  // ===== Campos mapeados (listos para UI) =====
+  // Campos mapeados a UI
   final clienteCedula = ''.obs;
   final clienteNombre = ''.obs;
   final clienteDireccion = ''.obs;
@@ -60,7 +64,6 @@ class DetalleInstalacionController extends GetxController {
       trabajo = Agenda(
         id: 0,
         tipo: '',
-        subtipo: '',
         estado: '',
         ordIns: 0,
         idSop: 0,
@@ -85,23 +88,21 @@ class DetalleInstalacionController extends GetxController {
     }
   }
 
-  /// Instalación (MySQL) -> Cliente (SQL Server) -> Imágenes (imagenes service)
+  /// Instalación (MySQL) -> Cliente (SQL Server) -> Imágenes
   Future<void> cargarInstalacionYCliente({bool force = false}) async {
     if (_busy.value && !force) {
-      // ignore: avoid_print
-      print('⏳ cargarInstalacionYCliente: ya hay una carga en curso.');
+      if (kDebugMode) debugPrint('⏳ cargarInstalacionYCliente: ya en curso.');
       return;
     }
     _busy.value = true;
-
     try {
       isLoadingInst.value = true;
 
       // 1) Instalación (MySQL)
-      final inst = await instalacionProvider.getInstalacionMysqlByOrdIns(
+      final inst = await instalacionProvider.getInstalacionByOrdIns(
         trabajo.ordIns,
       );
-      instalacionMysql.value = inst;
+      instalacion.value = inst;
 
       // 2) Cliente (SQL Server)
       final ordInsStr = inst?.ordIns ?? trabajo.ordIns.toString();
@@ -110,9 +111,7 @@ class DetalleInstalacionController extends GetxController {
       if (ordInsInt != 0) {
         isLoadingCliente.value = true;
         final cli = await clientesProvider.getInfoServicioByOrdId(ordInsInt);
-        // ignore: avoid_print
-        print('👤 Cliente JSON: $cli');
-
+        if (kDebugMode) debugPrint('👤 Cliente JSON: $cli');
         clienteJson.value = cli;
         _mapCliente(cli);
       } else {
@@ -120,28 +119,25 @@ class DetalleInstalacionController extends GetxController {
         _clearCliente();
       }
 
-      // 3) Imágenes (tabla neg_t_instalaciones, id = ord_ins STRING)
+      // 3) Imágenes
       await cargarImagenesInstalacion(force: true);
     } catch (e) {
-      // ignore: avoid_print
-      print('❌ Error al cargar instalación/cliente: $e');
+      if (kDebugMode) debugPrint('❌ Error cargar instalación/cliente: $e');
       SnackbarService.error('No se pudo cargar instalación/cliente');
     } finally {
       isLoadingCliente.value = false;
       isLoadingInst.value = false;
       _busy.value = false;
-      // ignore: avoid_print
-      print('🏁 cargarInstalacionYCliente: finalizado');
+      if (kDebugMode) debugPrint('🏁 cargarInstalacionYCliente: OK');
     }
   }
 
   Future<void> cargarImagenesInstalacion({bool force = false}) async {
     if (_busyImgs.value && !force) {
-      // ignore: avoid_print
-      print('⏳ cargarImagenesInstalacion: ya hay una carga en curso.');
+      if (kDebugMode) debugPrint('⏳ cargarImagenesInstalacion: ya en curso.');
       return;
     }
-    final inst = instalacionMysql.value;
+    final inst = instalacion.value;
     if (inst == null || inst.ordIns.isEmpty) {
       imagenesInstalacion.clear();
       return;
@@ -152,12 +148,11 @@ class DetalleInstalacionController extends GetxController {
     try {
       final map = await imagenesProvider.getImagenesPorAgenda(
         'neg_t_instalaciones',
-        inst.ordIns, // ID debe ser string
+        inst.ordIns, // string
       );
       imagenesInstalacion.assignAll(map);
     } catch (e) {
-      // ignore: avoid_print
-      print('⚠️ No se pudieron cargar imágenes de instalación: $e');
+      if (kDebugMode) debugPrint('⚠️ No se cargaron imágenes: $e');
       imagenesInstalacion.clear();
     } finally {
       isLoadingImgs.value = false;
@@ -165,9 +160,7 @@ class DetalleInstalacionController extends GetxController {
     }
   }
 
-  // =======================
-  // Helpers de mapeo cliente
-  // =======================
+  // -------- mapeo cliente --------
 
   void _mapCliente(Map<String, dynamic> cli) {
     final servicios = (cli['servicios'] as List?) ?? const [];
@@ -192,10 +185,8 @@ class DetalleInstalacionController extends GetxController {
       }
     }
 
-    String _normalizeCoords(String s) {
-      final raw = s.replaceAll(',,', ',').replaceAll(' ', '');
-      return raw;
-    }
+    String _normalizeCoords(String s) =>
+        s.replaceAll(',,', ',').replaceAll(' ', '');
 
     clienteCedula.value = _s(cli['cedula']);
     clienteNombre.value = _s(cli['nombre_completo']);

@@ -355,7 +355,7 @@ class EditarAgendaController extends GetxController {
 
       // 4) SOPORTE si aplica
       if (t.idSop != 0) {
-        await soporteProvider.actualizarEstadoSop(t.idSop, {
+        await soporteProvider.actualizarEstado(t.idSop, {
           'reg_sop_estado': 'RESUELTO',
           'reg_sop_sol_det': solucionFinal,
         });

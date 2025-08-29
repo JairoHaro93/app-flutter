@@ -7,99 +7,69 @@ import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 
 class ImagenesProvider extends GetConnect {
-  // Asegúrate que Environment.API_URL termine en "/"
-  //final String _urlBase = '${Environment.API_URL}imagenes';
-  final String _urlBase = Environment.api('imagenes');
   ImagenesProvider() {
+    httpClient.baseUrl = Environment.API_URL; // http://IP:PORT/api/
     httpClient.timeout = const Duration(seconds: 20);
 
-    // Inyección de token y content-type JSON por defecto (GET)
     httpClient.addRequestModifier<dynamic>((request) {
-      final token = GetStorage().read('token');
-      if (token != null && token.toString().isNotEmpty) {
+      final token = GetStorage().read('token')?.toString();
+      if (token != null && token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-      request.headers['Content-Type'] = 'application/json';
+      if (request.method != 'get') {
+        request.headers['Content-Type'] = 'application/json';
+        request.headers['Accept'] = 'application/json';
+      }
       return request;
     });
   }
 
-  /// Descarga imágenes por tabla e id.
-  /// Ej: tabla='neg_t_instalaciones', id=ord_ins (String o int)
   Future<Map<String, ImagenInstalacion>> getImagenesPorAgenda(
     String tabla,
     Object trabajoId,
   ) async {
     final id = trabajoId.toString();
-    final url = '$_urlBase/download/$tabla/$id';
 
-    // intento + retry suave
     Response resp;
     try {
-      resp = await get(url);
+      resp = await get('imagenes/download/$tabla/$id');
     } catch (_) {
       await Future.delayed(const Duration(milliseconds: 400));
-      resp = await get(url);
+      resp = await get('imagenes/download/$tabla/$id');
     }
 
-    var code = resp.statusCode ?? 0;
-    if (code == 0) {
-      await Future.delayed(const Duration(milliseconds: 600));
-      resp = await get(url);
-      code = resp.statusCode ?? 0;
-    }
+    final code = resp.statusCode ?? 0;
 
-    // Si el backend devuelve 404 cuando no hay imágenes, devuelve {} sin error
-    if (code == 404) {
-      return <String, ImagenInstalacion>{};
-    }
+    if (code == 404) return <String, ImagenInstalacion>{};
 
-    if (code == 200 && resp.body != null) {
-      final data = resp.body;
-      final raw = (data['imagenes'] as Map<String, dynamic>?) ?? {};
-
-      final result = <String, ImagenInstalacion>{};
-
-      // Origin real desde API_URL para reemplazar 'localhost'
-      final api = Uri.parse(Environment.API_URL);
-      final origin =
-          '${api.scheme}://${api.host}${api.hasPort ? ':${api.port}' : ''}';
+    if (code >= 200 && code < 300 && resp.body is Map) {
+      final data = resp.body as Map;
+      final raw = (data['imagenes'] as Map?) ?? const {};
+      final out = <String, ImagenInstalacion>{};
 
       raw.forEach((k, v) {
-        final im = ImagenInstalacion.fromJson(v);
-
-        // Corrige hostname si llega como localhost
-        var fixedUrl = (im.url).trim();
-        if (fixedUrl.startsWith('http://localhost') ||
-            fixedUrl.startsWith('https://localhost') ||
-            fixedUrl.startsWith('http://127.0.0.1') ||
-            fixedUrl.startsWith('https://127.0.0.1')) {
-          fixedUrl = fixedUrl.replaceFirst(
-            RegExp(r'^https?://(localhost|127\.0\.0\.1)(:\d+)?'),
-            origin,
-          );
-        }
-
-        // Filtra inválidas (ruta 'null' o url vacía/terminada en /null)
-        final ruta = im.ruta?.toLowerCase();
-        final invalid =
-            (ruta == null || ruta == 'null') ||
-            fixedUrl.isEmpty ||
-            fixedUrl.endsWith('/null') ||
-            fixedUrl.contains('/undefined');
-
-        if (!invalid) {
-          result[k] = ImagenInstalacion(ruta: im.ruta, url: fixedUrl);
+        if (v is Map) {
+          final im = ImagenInstalacion.fromJson(Map<String, dynamic>.from(v));
+          final ruta = im.ruta.toLowerCase();
+          final url = im.url.trim();
+          final invalid =
+              ruta.isEmpty ||
+              ruta == 'null' ||
+              url.isEmpty ||
+              url.endsWith('/null') ||
+              url.contains('/undefined');
+          if (!invalid) out[k.toString()] = im;
         }
       });
 
-      return result;
+      return out;
     }
 
-    throw Exception('Error al obtener imágenes');
+    throw Exception(
+      '[${resp.statusCode}] ${_extractError(resp.body) ?? 'Error al obtener imágenes'}',
+    );
   }
 
-  /// Subida multipart con Authorization
   Future<void> postImagenUnitaria({
     required String tabla,
     required String id,
@@ -107,10 +77,14 @@ class ImagenesProvider extends GetConnect {
     required String directorio,
     required File file,
   }) async {
-    final uri = Uri.parse('$_urlBase/upload');
-    final token = GetStorage().read('token');
+    if (!await file.exists()) {
+      throw Exception('El archivo no existe: ${file.path}');
+    }
 
-    final request =
+    final uri = Uri.parse('${Environment.API_URL}imagenes/upload');
+    final token = GetStorage().read('token')?.toString();
+
+    final req =
         http.MultipartRequest('POST', uri)
           ..fields['tabla'] = tabla
           ..fields['id'] = id
@@ -120,20 +94,53 @@ class ImagenesProvider extends GetConnect {
             await http.MultipartFile.fromPath(
               'imagen',
               file.path,
-              contentType: MediaType('image', 'jpeg'),
+              contentType: _contentTypeFor(file.path),
             ),
           );
 
-    if (token != null && token.toString().isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $token';
+    if (token != null && token.isNotEmpty) {
+      req.headers['Authorization'] = 'Bearer $token';
     }
 
-    final resp = await request.send();
+    try {
+      final resp = await req.send();
 
-    if (resp.statusCode != 200) {
-      final body = await resp.stream.bytesToString();
+      // Acepta cualquier 2xx como éxito
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        final body = await resp.stream.bytesToString();
+        throw Exception(
+          'Error al subir imagen: [${resp.statusCode}] ${body.isEmpty ? '(sin detalle)' : body}',
+        );
+      }
+    } catch (e) {
+      throw Exception('No se pudo subir la imagen: $e');
+    }
+  }
 
-      throw Exception('Error al subir imagen: $body');
+  String? _extractError(dynamic body) {
+    if (body == null) return null;
+    if (body is Map) {
+      for (final k in const ['message', 'error', 'msg']) {
+        final v = body[k];
+        if (v != null) return v.toString();
+      }
+    }
+    if (body is List && body.isNotEmpty) return body.first.toString();
+    return body.toString();
+  }
+
+  MediaType _contentTypeFor(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'png':
+        return MediaType('image', 'png');
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'webp':
+        return MediaType('image', 'webp');
+      default:
+        return MediaType('application', 'octet-stream');
     }
   }
 }

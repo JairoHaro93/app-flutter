@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import 'detalle_soporte_controller.dart';
 import 'package:redecom_app/src/models/agenda.dart';
-import '../../utils/maps_helpers.dart';
+import 'package:redecom_app/src/models/imagen_instalacion.dart';
+import 'package:redecom_app/src/utils/maps_helpers.dart';
 import 'package:redecom_app/src/utils/date_helpers.dart';
 
 class DetalleSoportePage extends GetView<DetalleSoporteController> {
@@ -10,12 +12,8 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
 
   @override
   Widget build(BuildContext context) {
-    // Airbag por si llegan sin binding (opcional)
-    if (!Get.isRegistered<DetalleSoporteController>()) {
-      Get.put(DetalleSoporteController());
-    }
-
-    final Agenda t = Get.arguments as Agenda;
+    // ⚠️ No registres el controller aquí: el Binding ya lo provee
+    final Agenda t = controller.agenda;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,12 +39,11 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                 title: 'Agenda',
                 children: [
                   _kv('Tipo', t.tipo),
-                  // _kv('Subtipo', t.subtipo),
                   _kv('Fecha', Fmt.date(t.fecha)),
                   _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
                   _kv('Vehículo', t.vehiculo),
-                  //_kv('Técnico', t.tecnico),
-                  _kv('diagnostico', t.diagnostico),
+                  _kv('Comentario cliente', controller.soporteComentario.value),
+                  _kv('Diagnóstico', t.diagnostico),
                 ],
               ),
               const SizedBox(height: 12),
@@ -71,16 +68,11 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   _kv('Estado de Pago', controller.clienteEstado.value),
                   _kv('IP', controller.clienteIp.value),
                   _kv('Servicio', controller.clienteServicio.value),
-                  //_kv('Tipo instalación',controller.clienteTipoInstalacion.value,),
-                  //_kv('Estado instalación',controller.clienteEstadoInstalacion.value,),
                   _kv('Cortado', controller.clienteCortado.value),
-
-                  //_kv('Fecha instalación',_fmtDateTime(controller.clienteFechaInstalacion.value),),
                   _kv(
                     'Fecha instalación',
                     Fmt.date(controller.clienteFechaInstalacion.value),
                   ),
-                  // _kv('Coordenadas', controller.clienteCoordenadas.value),
                   kvLinkCoords(
                     context: context,
                     label: 'Coordenadas',
@@ -219,7 +211,7 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
     );
   }
 
-  Widget _gridImagenes(List<MapEntry<String, dynamic>> entries) {
+  Widget _gridImagenes(List<MapEntry<String, ImagenInstalacion>> entries) {
     // Orden sugerido común
     const orden = [
       'fachada',
@@ -256,7 +248,8 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
       itemBuilder: (_, idx) {
         final campo = entries[idx].key;
         final img = entries[idx].value;
-        final url = (img.url ?? '').trim();
+        final url = img.url.trim();
+
         if (url.isEmpty) return _imgPlaceholder(campo);
 
         return InkWell(

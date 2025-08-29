@@ -1,3 +1,4 @@
+// lib/src/models/agenda.dart
 class Agenda {
   final int id;
   final String tipo;
@@ -7,19 +8,17 @@ class Agenda {
   final int idSop;
   final String horaInicio;
   final String horaFin;
-  final String fecha;
+  final String fecha; // ISO (ej: 2025-08-27T05:00:00.000Z)
   final String vehiculo;
   final String tecnico;
   final String diagnostico;
-  final String coordenadas;
+  final String coordenadas; // ej: "-0.93,-78.60"
   final String telefono;
   final String? solucion;
-  final String subtipo;
 
   Agenda({
     required this.id,
     required this.tipo,
-    required this.subtipo,
     required this.estado,
     required this.ordIns,
     required this.idSop,
@@ -35,42 +34,43 @@ class Agenda {
     this.solucion,
   });
 
-  factory Agenda.fromJson(Map<String, dynamic> json) => Agenda(
-    id: json['id'] ?? json['age_id'] ?? 0,
-    tipo: (json['age_tipo'] ?? json['tipo'] ?? '').toString(),
-    subtipo: (json['age_subtipo'] ?? json['subtipo'] ?? '').toString(),
-    estado: (json['age_estado'] ?? json['estado'] ?? '').toString(),
-    ordIns:
-        json['ord_ins'] is int
-            ? json['ord_ins']
-            : int.tryParse(json['ord_ins']?.toString() ?? '') ?? 0,
-    idSop:
-        json['age_id_sop'] is int
-            ? json['age_id_sop']
-            : int.tryParse(json['age_id_sop']?.toString() ?? '') ?? 0,
-    idTipo:
-        json['age_id_tipo'] is int
-            ? json['age_id_tipo']
-            : int.tryParse(json['age_id_tipo']?.toString() ?? '') ?? 0,
-    horaInicio:
-        (json['age_hora_inicio'] ?? json['horaInicio'] ?? '').toString(),
-    horaFin: (json['age_hora_fin'] ?? json['horaFin'] ?? '').toString(),
-    fecha: (json['age_fecha'] ?? json['fecha'] ?? '').toString(),
-    vehiculo: (json['age_vehiculo'] ?? json['vehiculo'] ?? '').toString(),
-    tecnico: (json['age_tecnico'] ?? json['tecnico'] ?? '').toString(),
-    diagnostico:
-        (json['age_diagnostico'] ?? json['diagnostico'] ?? '').toString(),
-    coordenadas:
-        (json['age_coordenadas'] ?? json['coordenadas'] ?? '').toString(),
-    telefono: (json['age_telefono'] ?? json['telefono'] ?? '').toString(),
-    solucion: (json['age_solucion'] ?? json['solucion']),
-  );
+  // -------- helpers de parseo simples --------
+  static int _toInt(dynamic v, {int def = 0}) {
+    if (v == null) return def;
+    if (v is int) return v;
+    return int.tryParse(v.toString()) ?? def;
+  }
 
+  static String _toStr(dynamic v) => v?.toString().trim() ?? '';
+
+  /// Limpia coordenadas: quita espacios alrededor de coma (", ")
+  static String _cleanCoords(String s) => s.replaceAll(RegExp(r'\s*,\s*'), ',');
+
+  factory Agenda.fromJson(Map<String, dynamic> json) {
+    return Agenda(
+      id: _toInt(json['id'] ?? json['age_id']),
+      tipo: _toStr(json['age_tipo']),
+      estado: _toStr(json['age_estado']),
+      ordIns: _toInt(json['ord_ins']),
+      idTipo: _toInt(json['age_id_tipo']),
+      idSop: _toInt(json['age_id_sop']),
+      horaInicio: _toStr(json['age_hora_inicio']),
+      horaFin: _toStr(json['age_hora_fin']),
+      fecha: _toStr(json['age_fecha']),
+      vehiculo: _toStr(json['age_vehiculo']),
+      tecnico: _toStr(json['age_tecnico']),
+      diagnostico: _toStr(json['age_diagnostico']),
+      coordenadas: _cleanCoords(_toStr(json['age_coordenadas'])),
+      telefono: _toStr(json['age_telefono']),
+      solucion: json['age_solucion']?.toString(),
+    );
+  }
+
+  /// Si necesitas enviar el objeto completo con prefijo `age_` (consistente)
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'age_id': id,
       'age_tipo': tipo,
-      'age_subtipo': subtipo,
       'age_estado': estado,
       'age_ord_ins': ordIns,
       'age_id_sop': idSop,
@@ -87,11 +87,15 @@ class Agenda {
     };
   }
 
+  /// Payload mínimo para PUT /agenda/edita-sol/:ageId
+  Map<String, dynamic> toSolucionJson() {
+    return {'age_id': id, 'age_estado': estado, 'age_solucion': solucion};
+  }
+
   Agenda copyWith({String? estado, String? solucion}) {
     return Agenda(
       id: id,
       tipo: tipo,
-      subtipo: subtipo,
       estado: estado ?? this.estado,
       ordIns: ordIns,
       idSop: idSop,
@@ -106,11 +110,5 @@ class Agenda {
       telefono: telefono,
       solucion: solucion ?? this.solucion,
     );
-  }
-}
-
-extension AgendaSolucionJson on Agenda {
-  Map<String, dynamic> toSolucionJson() {
-    return {'age_id': id, 'age_estado': estado, 'age_solucion': solucion};
   }
 }

@@ -1,5 +1,8 @@
+// lib/src/pages/mi_agenda/detalle_instalacion_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:redecom_app/src/utils/date_helpers.dart';
+import 'package:redecom_app/src/utils/maps_helpers.dart';
 import 'detalle_instalacion_controller.dart';
 
 class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
@@ -8,23 +11,28 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle Instalación')),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.edit),
-        label: const Text('Editar'),
-        onPressed: () async {
-          final ok = await Get.toNamed(
-            '/editar-trabajo',
-            arguments: controller.trabajo,
-          );
-          if (ok == true) {
-            await controller.cargarInstalacionYCliente(force: true);
-          }
-        },
+      appBar: AppBar(
+        title: const Text('Detalle Instalación'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Editar',
+            onPressed: () async {
+              final ok = await Get.toNamed(
+                '/editar-trabajo',
+                arguments: controller.trabajo,
+              );
+              if (ok == true) {
+                await controller.cargarInstalacionYCliente(force: true);
+              }
+            },
+          ),
+        ],
       ),
-      body: Obx(() {
-        final inst = controller.instalacionMysql.value;
 
+      body: Obx(() {
+        final inst = controller.instalacion.value;
+        final t = controller.trabajo;
         if (controller.isLoadingInst.value && inst == null) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -38,7 +46,7 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
             padding: const EdgeInsets.all(16),
             children: [
               _card(
-                title: 'Instalación (MySQL)',
+                title: 'Datos Instalación',
                 trailing:
                     controller.isLoadingInst.value
                         ? const SizedBox(
@@ -48,16 +56,24 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                         )
                         : null,
                 children: [
-                  _kv('ORD_INS', inst.ordIns),
+                  //_kv('ORD_INS', inst.ordIns),
                   _kv('Teléfonos', inst.instTelefonos),
-                  _kv('Coordenadas', inst.instCoordenadas),
+
+                  _kv('Fecha', Fmt.date(t.fecha)),
+                  _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
+                  _kv('Vehículo', t.vehiculo),
                   _kv('Observación', inst.instObservacion),
+                  kvLinkCoords(
+                    context: context,
+                    label: 'Coordenadas Ref',
+                    value: inst.instCoordenadas,
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
 
               _card(
-                title: 'Cliente (SQL Server)',
+                title: 'Datos Cliente',
                 trailing:
                     controller.isLoadingCliente.value
                         ? const SizedBox(
@@ -73,24 +89,23 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                   _kv('Referencia', controller.clienteReferencia.value),
                   _kv('Teléfonos', controller.clienteTelefonos.value),
                   _kv('Plan', controller.clientePlan.value),
-                  _kv('Estado', controller.clienteEstado.value),
-                  _kv('Instalado por', controller.clienteInstaladoPor.value),
-                  _kv('IP', controller.clienteIp.value),
+                  //_kv('Estado', controller.clienteEstado.value),
+                  // _kv('Instalado por', controller.clienteInstaladoPor.value),
+                  //_kv('IP', controller.clienteIp.value),
                   _kv('Servicio', controller.clienteServicio.value),
-                  _kv(
-                    'Tipo instalación',
-                    controller.clienteTipoInstalacion.value,
-                  ),
-                  _kv(
-                    'Estado instalación',
-                    controller.clienteEstadoInstalacion.value,
-                  ),
-                  _kv('Cortado', controller.clienteCortado.value),
+                  //_kv('Tipo instalación', controller.clienteTipoInstalacion.value,),
+                  //_kv('Estado instalación',controller.clienteEstadoInstalacion.value,),
+                  // _kv('Cortado', controller.clienteCortado.value),
+                  /*
                   _kv(
                     'Fecha instalación',
-                    _fmtDateTime(controller.clienteFechaInstalacion.value),
+                    Fmt.date(
+                      controller.clienteFechaInstalacion.value
+                          ?.toIso8601String(),
+                    ),
                   ),
-                  _kv('Coordenadas', controller.clienteCoordenadas.value),
+*/
+                  // _kv('Coordenadas', controller.clienteCoordenadas.value),
                 ],
               ),
               const SizedBox(height: 12),
@@ -189,7 +204,6 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
   Widget _gridImagenes() {
     final entries = controller.imagenesInstalacion.entries.toList();
 
-    // (opcional) orden sugerido
     const orden = [
       'fachada',
       'router',
@@ -222,7 +236,8 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
       itemBuilder: (_, idx) {
         final campo = entries[idx].key;
         final img = entries[idx].value;
-        final url = (img.url ?? '').trim();
+        final url = img.url.trim(); // <- url no-nullable
+
         if (url.isEmpty) {
           return _imgPlaceholder(campo);
         }
@@ -237,12 +252,15 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                 Image.network(
                   url,
                   fit: BoxFit.cover,
-                  loadingBuilder: (c, w, p) {
-                    if (p == null) return w;
-                    return const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    );
-                  },
+                  loadingBuilder:
+                      (c, w, p) =>
+                          p == null
+                              ? w
+                              : const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                   errorBuilder: (_, __, ___) => _imgPlaceholder(campo),
                 ),
                 Align(
@@ -304,10 +322,13 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                 child: Image.network(
                   url,
                   fit: BoxFit.contain,
-                  loadingBuilder: (c, w, p) {
-                    if (p == null) return w;
-                    return const Center(child: CircularProgressIndicator());
-                  },
+                  loadingBuilder:
+                      (c, w, p) =>
+                          p == null
+                              ? w
+                              : const Center(
+                                child: CircularProgressIndicator(),
+                              ),
                   errorBuilder:
                       (_, __, ___) => const Center(
                         child: Text('No se pudo cargar la imagen'),

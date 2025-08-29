@@ -1,54 +1,71 @@
 // lib/src/providers/clientes_provider.dart
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/environmets/environment.dart';
 
 class ClientesProvider extends GetConnect {
-  final String _urlBase = '${Environment.API_URL}clientes';
-
   ClientesProvider() {
+    httpClient.baseUrl = Environment.API_URL; // http://IP:PORT/api/
     httpClient.timeout = const Duration(seconds: 20);
 
     httpClient.addRequestModifier<dynamic>((r) {
-      final token = GetStorage().read('token');
-      if (token != null && token.toString().isNotEmpty) {
+      final token = GetStorage().read('token')?.toString();
+      if (token != null && token.isNotEmpty) {
         r.headers['Authorization'] = 'Bearer $token';
-        r.headers['x-token'] = token.toString();
-        r.headers['Cookie'] = 'token=${token.toString()}';
+        // Si tu backend lo requiere, descomenta:
+        // r.headers['x-token'] = token;
+        // r.headers['Cookie'] = 'token=$token';
       }
-      r.headers['Content-Type'] = 'application/json';
-      print('➡️ ${r.method} ${r.url}');
+      if (r.method != 'get') {
+        r.headers['Content-Type'] = 'application/json';
+        r.headers['Accept'] = 'application/json';
+      }
       return r;
-    });
-
-    httpClient.addResponseModifier<dynamic>((req, res) {
-      print('⬅️ ${res.statusCode} ${req?.url}');
-      print('🧾 Body: ${res.bodyString}');
-      return res;
     });
   }
 
-  /// SQL Server: info de cliente/servicio por ORD_INS (tu backend usa /clientes/{ordIns})
+  /// GET /api/clientes/{ordIns}
   Future<Map<String, dynamic>> getInfoServicioByOrdId(int ordIns) async {
-    final url = '$_urlBase/$ordIns';
-    print('🔗 GET $url');
+    final Response resp = await get('clientes/$ordIns');
+    final int code = resp.statusCode ?? 0;
+    final body = resp.body;
 
-    final resp = await get(url);
-    final code = resp.statusCode ?? 0;
-
-    if (code >= 200 && code < 300) {
-      final b = resp.body;
-      if (b is Map<String, dynamic>) return Map<String, dynamic>.from(b);
-      if (b is List && b.isNotEmpty) {
-        final first = b.first;
-        return first is Map<String, dynamic>
-            ? Map<String, dynamic>.from(first)
-            : {'value': first};
-      }
-      return {};
+    if (kDebugMode) {
+      debugPrint('GET clientes/$ordIns -> $code');
     }
 
-    print('❌ Error getInfoServicioByOrdId [$code], body: ${resp.bodyString}');
-    throw Exception('Error al obtener info de cliente [$code]');
+    // 404: sin datos
+    if (code == 404) return <String, dynamic>{};
+
+    if (code >= 200 && code < 300) {
+      if (body is Map) {
+        return Map<String, dynamic>.from(body as Map);
+      }
+      if (body is List && body.isNotEmpty) {
+        final first = body.first;
+        if (first is Map) {
+          return Map<String, dynamic>.from(first as Map);
+        }
+        return {'value': first};
+      }
+      return <String, dynamic>{}; // 2xx pero sin body útil
+    }
+
+    throw Exception(
+      '[${code}] ${_extractError(body) ?? 'Error al obtener info de cliente'}',
+    );
+  }
+
+  String? _extractError(dynamic body) {
+    if (body == null) return null;
+    if (body is Map) {
+      for (final k in const ['message', 'error', 'msg']) {
+        final v = body[k];
+        if (v != null) return v.toString();
+      }
+    }
+    if (body is List && body.isNotEmpty) return body.first.toString();
+    return body.toString();
   }
 }

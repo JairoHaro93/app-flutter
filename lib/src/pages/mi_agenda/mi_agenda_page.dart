@@ -1,8 +1,11 @@
+// lib/src/pages/mi_agenda/mi_agenda_page.dart
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_controller.dart';
+import 'package:redecom_app/src/utils/date_helpers.dart';
 
 class MiAgendaPage extends GetView<MiAgendaController> {
   const MiAgendaPage({super.key});
@@ -31,10 +34,7 @@ class MiAgendaPage extends GetView<MiAgendaController> {
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: controller.trabajos.length,
-            itemBuilder: (context, index) {
-              final Agenda t = controller.trabajos[index];
-              return _AgendaCard(item: t);
-            },
+            itemBuilder: (_, i) => _AgendaCard(item: controller.trabajos[i]),
           ),
         );
       }),
@@ -48,16 +48,16 @@ class _AgendaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tipoUpper = (item.tipo ?? '').trim().toUpperCase();
+    final tipoUpper = (item.tipo).trim().toUpperCase();
     final colorTipo = _colorPorTipo(tipoUpper);
 
-    final fecha = _formatFecha(item.fecha);
-    final horaIni = (item.horaInicio ?? '').trim();
-    final horaFin = (item.horaFin ?? '').trim();
-    final horario =
-        (horaIni.isEmpty && horaFin.isEmpty) ? '—' : '$horaIni - $horaFin';
+    // Fechas/horario usando Fmt (tu helper)
+    final fechaStr = Fmt.date(item.fecha); // dd/MM/yyyy
+    final horario = _horario(item.horaInicio, item.horaFin);
 
-    final bool esHoy = _esHoy(item.fecha);
+    // Badge HOY comparando cadenas formateadas (sin tocar Fmt._parse)
+    final hoyStr = Fmt.date(DateTime.now().toIso8601String());
+    final esHoy = fechaStr == hoyStr;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -66,7 +66,6 @@ class _AgendaCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // mantiene tu routing original basado en TIPO
           switch (tipoUpper) {
             case 'LOS':
             case 'VISITA':
@@ -90,22 +89,23 @@ class _AgendaCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ===== Recuadro de color con abreviatura del tipo (como tu original) =====
-              _badgeTipo(tipoUpper, colorTipo),
+              _badgeTipo(
+                tipoUpper,
+                colorTipo,
+              ), // recuadro de color con abreviatura
               const SizedBox(width: 12),
 
-              // ===== Contenido =====
+              // Contenido
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Primera fila: título + HOY + chevron
+                    // Título + HOY + chevron
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            // muestra tipo + subtipo como en tu original
-                            '${item.tipo ?? ''}  ${item.subtipo ?? ''}'.trim(),
+                            ' ${item.tipo}'.trim(),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -138,12 +138,12 @@ class _AgendaCard extends StatelessWidget {
 
                     const SizedBox(height: 6),
 
-                    // Segunda fila: fecha + horario
+                    // Fecha + Horario
                     Row(
                       children: [
                         const Icon(Icons.event, size: 16, color: Colors.grey),
                         const SizedBox(width: 6),
-                        Text(fecha),
+                        Text(fechaStr),
                         const SizedBox(width: 12),
                         const Icon(
                           Icons.schedule,
@@ -158,10 +158,9 @@ class _AgendaCard extends StatelessWidget {
                 ),
               ),
 
-              // Vehículo a la derecha (como tu original)
               const SizedBox(width: 8),
               Text(
-                (item.vehiculo ?? '').isNotEmpty ? item.vehiculo! : '-',
+                (item.vehiculo).isNotEmpty ? item.vehiculo : '-',
                 style: const TextStyle(color: Colors.black54),
               ),
             ],
@@ -171,7 +170,7 @@ class _AgendaCard extends StatelessWidget {
     );
   }
 
-  // ===== Recuadro de color con iniciales del TIPO (máx 3) =====
+  // Recuadro de color con abreviatura (máx 3 letras)
   Widget _badgeTipo(String tipoUpper, Color bg) {
     final abbr =
         tipoUpper.isEmpty
@@ -188,9 +187,7 @@ class _AgendaCard extends StatelessWidget {
       child: Text(
         abbr,
         style: TextStyle(
-          color: _contrasteTexto(
-            bg,
-          ), // negro sobre amarillo, blanco sobre azul/verde
+          color: _contrasteTexto(bg), // blanco/negro según color de fondo
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -198,7 +195,16 @@ class _AgendaCard extends StatelessWidget {
     );
   }
 
-  // ===== Helpers =====
+  // Helpers UI
+
+  static String _horario(String? ini, String? fin) {
+    final h1 = (ini ?? '').trim();
+    final h2 = (fin ?? '').trim();
+    if (h1.isEmpty && h2.isEmpty) return '—';
+    if (h1.isNotEmpty && h2.isNotEmpty) return '$h1 - $h2';
+    return h1.isNotEmpty ? h1 : h2;
+  }
+
   static Color _colorPorTipo(String tipoUpper) {
     switch (tipoUpper) {
       case 'INSTALACION':
@@ -209,27 +215,6 @@ class _AgendaCard extends StatelessWidget {
         return const Color(0xFFFFE900); // amarillo
       default:
         return Colors.grey;
-    }
-  }
-
-  static String _formatFecha(String? fecha) {
-    if (fecha == null || fecha.isEmpty) return '—';
-    try {
-      final d = DateTime.parse(fecha);
-      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-    } catch (_) {
-      return fecha;
-    }
-  }
-
-  static bool _esHoy(String? fecha) {
-    if (fecha == null || fecha.isEmpty) return false;
-    try {
-      final d = DateTime.parse(fecha);
-      final now = DateTime.now();
-      return d.year == now.year && d.month == now.month && d.day == now.day;
-    } catch (_) {
-      return false;
     }
   }
 

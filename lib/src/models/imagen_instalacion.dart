@@ -1,3 +1,4 @@
+// lib/src/models/imagen_instalacion.dart
 import 'package:redecom_app/src/environmets/environment.dart';
 
 class ImagenInstalacion {
@@ -7,11 +8,14 @@ class ImagenInstalacion {
   ImagenInstalacion({required this.ruta, required this.url});
 
   factory ImagenInstalacion.fromJson(Map<String, dynamic> json) {
-    String url = json['url'] ?? '';
+    final rawRuta = (json['ruta'] ?? '').toString().trim();
+    final rawUrl = (json['url'] ?? '').toString().trim();
 
-    // Reemplaza 'localhost' por la IP del servidor si es necesario
-    //url = url.replaceAll('localhost', '192.168.0.181');
-    url = url.replaceAll('localhost', Environment.API_IP);
-    return ImagenInstalacion(ruta: json['ruta'] ?? '', url: url);
+    // Corrige URLs locales que vengan como localhost/127.0.0.1
+    final fixed = Environment.fixLocalhost(rawUrl);
+
+    return ImagenInstalacion(ruta: rawRuta, url: fixed);
   }
+
+  Map<String, dynamic> toJson() => {'ruta': ruta, 'url': url};
 }

@@ -4,61 +4,33 @@ import 'package:redecom_app/src/environmets/environment.dart';
 import 'package:redecom_app/src/models/agenda.dart';
 
 class AgendaProvider extends GetConnect {
-  final String _urlBase = "${Environment.API_URL}agenda";
-
   AgendaProvider() {
+    httpClient.baseUrl = Environment.API_URL; // p.ej. http://IP:PORT/api/
     httpClient.timeout = const Duration(seconds: 20);
 
-    // Logs de request
+    // Token en headers (estilo interceptor)
     httpClient.addRequestModifier<dynamic>((request) {
-      // ignore: avoid_print
-      print('➡️ ${request.method} ${request.url}');
-      // ignore: avoid_print
-      print('🧩 Headers: ${request.headers}');
-      return request;
-    });
-
-    // Inyección de token y content-type
-    httpClient.addRequestModifier<dynamic>((request) {
-      final token = GetStorage().read('token');
-      if (token != null && token.toString().isNotEmpty) {
+      final token = GetStorage().read('token')?.toString();
+      if (token != null && token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-      request.headers['Content-Type'] = 'application/json';
+      // Solo métodos con cuerpo definen Content-Type
+      if (request.method != 'get') {
+        request.headers['Content-Type'] = 'application/json';
+        request.headers['Accept'] = 'application/json';
+      }
       return request;
-    });
-
-    // Logs de response
-    httpClient.addResponseModifier<dynamic>((request, response) {
-      // ignore: avoid_print
-      print('⬅️ ${response.statusCode} ${request?.url}');
-      // ignore: avoid_print
-      print('🧾 Body: ${response.bodyString}');
-      return response;
     });
   }
 
-  /// Obtiene la agenda del técnico autenticado (o de [tecnicoId] si se pasa).
+  /// Agenda del técnico autenticado (o [tecnicoId]).
   Future<List<Agenda>> getAgendaTec([int? tecnicoId]) async {
-    final box = GetStorage();
-    final id = tecnicoId ?? box.read('usuario_id');
+    final id = tecnicoId ?? GetStorage().read('usuario_id');
     if (id == null) {
       throw Exception('No se encontró el ID del técnico en sesión.');
     }
 
-    final url = '$_urlBase/mis-trabajos-tec/$id';
-
-    // ignore: avoid_print
-    print('🔗 GET $url');
-    // ignore: avoid_print
-    print('🌍 API_URL: ${Environment.API_URL}');
-    // ignore: avoid_print
-    print(
-      '🔐 Token presente: ${box.read('token') != null && box.read('token').toString().isNotEmpty}',
-    );
-
-    final resp = await get(url);
-
+    final resp = await get('agenda/mis-trabajos-tec/$id');
     final code = resp.statusCode ?? 0;
     final body = resp.body;
 
@@ -79,33 +51,23 @@ class AgendaProvider extends GetConnect {
     );
   }
 
-  /// Marca un trabajo como CONCLUIDO actualizando la solución.
-  /// Versión que recibe un MAP ya listo (por si quieres controlar el payload).
-  /// Espera algo como: { "age_id": id, "age_estado": "CONCLUIDO", "age_solucion": "..." }
+  /// Actualiza estado/solución de un trabajo.
+  /// payload típico: { "age_id": id, "age_estado": "CONCLUIDO", "age_solucion": "..." }
   Future<void> actualizarAgendaSolucion(
     int ageId,
     Map<String, dynamic> payload,
   ) async {
-    // ignore: avoid_print
-    print('📝 PUT $_urlBase/edita-sol/$ageId');
-    // ignore: avoid_print
-    print('📦 Payload: $payload');
-
-    final resp = await put('$_urlBase/edita-sol/$ageId', payload);
+    final resp = await put('agenda/edita-sol/$ageId', payload);
     final code = resp.statusCode ?? 0;
-
-    // 200/201/204 -> OK
-    if ((code >= 200 && code < 300)) return;
-
+    if (code >= 200 && code < 300) return;
     throw Exception(
       '[${code}] ${_extractError(resp.body) ?? 'Error al actualizar solución'}',
     );
   }
 
-  /// Wrapper conveniente: acepta directamente un [Agenda] y construye el payload
-  /// vía `t.toSolucionJson()`.
-  Future<void> actualizarAgendaSolucionByAgenda(int ageId, Agenda t) async {
-    await actualizarAgendaSolucion(ageId, t.toSolucionJson());
+  /// Azúcar: usa el payload mínimo desde el modelo.
+  Future<void> actualizarAgendaSolucionByAgenda(int ageId, Agenda ag) async {
+    await actualizarAgendaSolucion(ageId, ag.toSolucionJson());
   }
 
   String? _extractError(dynamic body) {
