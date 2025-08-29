@@ -25,7 +25,7 @@ class VisProvider extends GetConnect {
       return r;
     });
     httpClient.addResponseModifier<dynamic>((req, res) {
-      print('⬅️ ${res.statusCode} ${req?.url}');
+      print('⬅️ ${res.statusCode} ${req.url}');
       print('🧾 Body: ${res.bodyString}');
       return res;
     });

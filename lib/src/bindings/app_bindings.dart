@@ -9,7 +9,7 @@ import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_controller.dart';
 import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_controller.dart';
 import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_controller.dart';
-import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_controller.dart';
 
 /// Se ejecuta al iniciar la app. Registra servicios globales.
 class AppInitialBinding extends Bindings {
@@ -64,8 +64,8 @@ class DetalleSoporteBinding extends Bindings {
 class EditarAgendaBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<EditarAgendaController>(
-      () => EditarAgendaController(),
+    Get.lazyPut<EditarTrabajoController>(
+      () => EditarTrabajoController(),
       fenix: true,
     );
   }

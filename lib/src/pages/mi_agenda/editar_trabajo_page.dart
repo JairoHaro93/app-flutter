@@ -1,16 +1,15 @@
-// lib/src/pages/mi agenda/editar_trabajo_page.dart
+// lib/src/pages/mi_agenda/editar_trabajo_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_controller.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_controller.dart';
 
-class EditarAgendaPage extends GetView<EditarAgendaController> {
-  const EditarAgendaPage({super.key});
+class EditarTrabajoPage extends GetView<EditarTrabajoController> {
+  const EditarTrabajoPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Airbag por si llegas sin binding en desarrollo
-    if (!Get.isRegistered<EditarAgendaController>()) {
-      Get.put(EditarAgendaController());
+    if (!Get.isRegistered<EditarTrabajoController>()) {
+      Get.put(EditarTrabajoController());
     }
 
     return Scaffold(
@@ -29,7 +28,6 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            // Campos dinámicos (canónicos + extras del backend)
             final camposInst = [
               ...controller.camposInstalacion,
               ...controller.imagenesInstalacion.keys.where(
@@ -43,14 +41,12 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
               ),
             ];
 
-            final esInstalacion = controller.esInstalacion;
-
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // ---- GALERÍA INSTALACIÓN ----
                 _card(
-                  title: 'Imagenes Instalación',
+                  title: 'Imágenes Instalación',
                   children: [
                     if (t.ordIns == 0)
                       const Text('Este trabajo no tiene ORD_INS asignado.')
@@ -71,9 +67,9 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
 
                 // ---- GALERÍA VIS/LOS ----
                 _card(
-                  title: 'Imagenes Visita',
+                  title: 'Imágenes Visita',
                   children: [
-                    if (esInstalacion)
+                    if (controller.esInstalacion)
                       const Text('Este trabajo es una instalación, no VIS/LOS.')
                     else
                       _gridCampos(
@@ -103,31 +99,62 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 8),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // ---- GUARDAR ----
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed:
-                        controller.isSaving.value
-                            ? null
-                            : controller.guardarSolucion,
-                    icon: const Icon(Icons.save),
-                    label: const Text('GUARDAR'),
+                // ---- CAMPOS EXTRAS SOLO PARA INSTALACIÓN ----
+                if (controller.esInstalacion)
+                  _card(
+                    title: 'Finalizar instalación',
+                    children: [
+                      TextFormField(
+                        controller: controller.coordCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Coordenadas confirmadas',
+                          hintText: '-0.938606,-78.600826',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: controller.ipCtrl,
+                        keyboardType: TextInputType.visiblePassword,
+                        decoration: const InputDecoration(
+                          labelText: 'IP del servicio',
+                          hintText: 'ej: 192.168.1.10',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+
+                const SizedBox(height: 24),
+
+                // ---- ÚNICO BOTÓN GUARDAR ----
+                Obx(() {
+                  final busy =
+                      controller.isSaving.value ||
+                      controller.isTerminating.value;
+                  return SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: busy ? null : controller.guardarTodo,
+                      icon: const Icon(Icons.save),
+                      label: Text(busy ? 'GUARDANDO…' : 'GUARDAR'),
+                    ),
+                  );
+                }),
                 const SizedBox(height: 16),
               ],
             );
           }),
 
-          // Overlay de guardado
+          // Overlay (cuando guarda)
           Obx(() {
-            if (!controller.isSaving.value) return const SizedBox.shrink();
+            final show =
+                controller.isSaving.value || controller.isTerminating.value;
+            if (!show) return const SizedBox.shrink();
             return Container(
               color: Colors.black.withOpacity(0.2),
               child: const Center(
@@ -144,8 +171,7 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
     );
   }
 
-  // ---------- Helpers UI locales ----------
-
+  // ---------- Helpers UI ----------
   Widget _card({
     required String title,
     List<Widget> children = const [],
@@ -181,7 +207,6 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
     );
   }
 
-  /// Grilla de campos con miniaturas y botón para añadir/reemplazar.
   Widget _gridCampos({
     required BuildContext context,
     required List<String> campos,
@@ -200,8 +225,6 @@ class EditarAgendaPage extends GetView<EditarAgendaController> {
       ),
       itemBuilder: (_, i) {
         final campo = campos[i];
-
-        // Sanitize URL
         final raw = (obtenerUrl(campo) ?? '').trim();
         final isBad =
             raw.isEmpty || raw.endsWith('/null') || raw.contains('/undefined');

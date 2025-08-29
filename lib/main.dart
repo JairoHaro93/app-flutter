@@ -11,7 +11,7 @@ import 'package:redecom_app/src/pages/login/login_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_page.dart';
-import 'package:redecom_app/src/pages/mi_agenda/editar_agenda_page.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_page.dart';
 import 'package:redecom_app/src/pages/perfil/perfil_info_page.dart';
 
 // BINDINGS
@@ -111,7 +111,7 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: Routes.editarTrabajo,
-          page: () => const EditarAgendaPage(),
+          page: () => const EditarTrabajoPage(),
           binding: EditarAgendaBinding(),
           middlewares: [AuthGuard()],
         ),

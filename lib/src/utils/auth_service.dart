@@ -12,7 +12,6 @@ class AuthService extends GetxService {
   static const _kToken = 'token';
   static const _kUser = 'user';
   static const _kUserId = 'usuario_id';
-  static const _kFirstInstall = 'first_install_done';
 
   User? get currentUser {
     final data = _storage.read(_kUser);

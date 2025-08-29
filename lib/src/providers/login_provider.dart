@@ -35,7 +35,7 @@ class LoginProvider extends GetConnect {
       if (resp.statusCode == null) {
         return ResponseApi(
           success: false,
-          message: 'Sin respuesta del servidor',
+          message: 'Sin respuesta del servidor ${Environment.API_IP} ',
         );
       }
 

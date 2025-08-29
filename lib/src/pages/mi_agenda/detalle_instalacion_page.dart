@@ -343,14 +343,4 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
       ),
     );
   }
-
-  String _fmtDateTime(DateTime? dt) {
-    if (dt == null) return '—';
-    final dd = dt.day.toString().padLeft(2, '0');
-    final mm = dt.month.toString().padLeft(2, '0');
-    final yyyy = dt.year.toString();
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final nn = dt.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy $hh:$nn';
-  }
 }

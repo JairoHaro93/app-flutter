@@ -207,6 +207,38 @@ class DetalleInstalacionController extends GetxController {
     clienteCoordenadas.value = coords.isEmpty ? '' : _normalizeCoords(coords);
   }
 
+  Future<void> terminarInstalacion({
+    required String coordsConfirmadas,
+    required String ipServicio,
+  }) async {
+    if (trabajo.ordIns == 0) {
+      SnackbarService.warning('Este trabajo no tiene ORD_INS');
+      return;
+    }
+    if (coordsConfirmadas.trim().isEmpty || ipServicio.trim().isEmpty) {
+      SnackbarService.warning('Coordenadas e IP son obligatorias');
+      return;
+    }
+
+    try {
+      isLoadingInst.value = true;
+      await instalacionProvider.terminarInstalacion(
+        ordIns: trabajo.ordIns,
+        coordenadas: coordsConfirmadas,
+        ip: ipServicio,
+      );
+
+      SnackbarService.success('Instalación actualizada correctamente');
+
+      // refrescar datos si quieres
+      await cargarInstalacionYCliente(force: true);
+    } catch (e) {
+      SnackbarService.error(e.toString());
+    } finally {
+      isLoadingInst.value = false;
+    }
+  }
+
   void _clearCliente() {
     clienteCedula.value = '';
     clienteNombre.value = '';

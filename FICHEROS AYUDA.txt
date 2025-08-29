@@ -1,0 +1,142 @@
+1️⃣ Modelo – lib/src/models/entidad.dart
+class Entidad {
+  final int id;
+  final String nombre;
+
+  Entidad({
+    required this.id,
+    required this.nombre,
+  });
+
+  factory Entidad.fromJson(Map<String, dynamic> json) {
+    return Entidad(
+      id: json['id'] ?? 0,
+      nombre: json['nombre'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+    };
+  }
+}
+
+
+2️⃣ Provider – lib/src/providers/entidad_provider.dart
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/models/entidad.dart';
+
+class EntidadProvider extends GetConnect {
+  EntidadProvider() {
+    httpClient.baseUrl = Environment.API_URL;
+    httpClient.timeout = const Duration(seconds: 20);
+
+    httpClient.addRequestModifier((request) {
+      final token = GetStorage().read('token');
+      if (token != null && token.toString().isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      return request;
+    });
+  }
+
+  Future<List<Entidad>> getEntidades() async {
+    final resp = await get('entidades'); // endpoint: /api/entidades
+    if (resp.statusCode == 200 && resp.body is List) {
+      return (resp.body as List).map((e) => Entidad.fromJson(e)).toList();
+    }
+    throw Exception('Error al obtener entidades');
+  }
+}
+
+3️⃣ Controller – lib/src/pages/entidad/entidad_controller.dart
+
+import 'package:get/get.dart';
+import 'package:redecom_app/src/models/entidad.dart';
+import 'package:redecom_app/src/providers/entidad_provider.dart';
+import 'package:redecom_app/src/utils/snackbar_service.dart';
+
+class EntidadController extends GetxController {
+  final EntidadProvider _provider = Get.put(EntidadProvider());
+  final entidades = <Entidad>[].obs;
+  final isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    cargarEntidades();
+  }
+
+  Future<void> cargarEntidades() async {
+    if (isLoading.value) return;
+    isLoading.value = true;
+    try {
+      final lista = await _provider.getEntidades();
+      entidades.assignAll(lista);
+    } catch (e) {
+      SnackbarService.error('Error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}
+
+4️⃣ Page – lib/src/pages/entidad/entidad_page.dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:redecom_app/src/pages/entidad/entidad_controller.dart';
+
+class EntidadPage extends GetView<EntidadController> {
+  const EntidadPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Entidades')),
+      body: Obx(() {
+        if (controller.isLoading.value && controller.entidades.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.entidades.isEmpty) {
+          return const Center(child: Text('No hay entidades'));
+        }
+        return RefreshIndicator(
+          onRefresh: controller.cargarEntidades,
+          child: ListView.builder(
+            itemCount: controller.entidades.length,
+            itemBuilder: (_, i) {
+              final item = controller.entidades[i];
+              return ListTile(
+                leading: CircleAvatar(child: Text(item.nombre[0])),
+                title: Text(item.nombre),
+                subtitle: Text('ID: ${item.id}'),
+              );
+            },
+          ),
+        );
+      }),
+    );
+  }
+}
+
+
+5️⃣ Binding – agregar en lib/src/bindings/app_bindings.dart
+
+class EntidadBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<EntidadController>(() => EntidadController(), fenix: true);
+  }
+}
+
+6️⃣ Ruta – en tu main.dart
+GetPage(
+  name: '/entidades',
+  page: () => const EntidadPage(),
+  binding: EntidadBinding(),
+),
+

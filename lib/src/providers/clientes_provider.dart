@@ -40,12 +40,12 @@ class ClientesProvider extends GetConnect {
 
     if (code >= 200 && code < 300) {
       if (body is Map) {
-        return Map<String, dynamic>.from(body as Map);
+        return Map<String, dynamic>.from(body);
       }
       if (body is List && body.isNotEmpty) {
         final first = body.first;
         if (first is Map) {
-          return Map<String, dynamic>.from(first as Map);
+          return Map<String, dynamic>.from(first);
         }
         return {'value': first};
       }
