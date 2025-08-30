@@ -66,12 +66,11 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 const SizedBox(height: 12),
 
                 // ---- GALERÍA VIS/LOS ----
-                _card(
-                  title: 'Imágenes Visita',
-                  children: [
-                    if (controller.esInstalacion)
-                      const Text('Este trabajo es una instalación, no VIS/LOS.')
-                    else
+                if (!controller.esInstalacion)
+                  _card(
+                    title: 'Imágenes Visita',
+                    children: [
+                      // const Text('Este trabajo es una instalación, no VIS/LOS.')
                       _gridCampos(
                         context: context,
                         campos: camposVis,
@@ -81,8 +80,8 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                             (campo) =>
                                 controller.seleccionarImagenVisita(campo),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 24),
 
                 // ---- SOLUCIÓN ----
@@ -95,7 +94,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                       maxLines: 6,
                       textCapitalization: TextCapitalization.characters,
                       decoration: const InputDecoration(
-                        hintText: 'DESCRIBE LA SOLUCIÓN APLICADA…',
+                        hintText: 'OBSERVACION',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -112,7 +111,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                         controller: controller.coordCtrl,
                         decoration: const InputDecoration(
                           labelText: 'Coordenadas confirmadas',
-                          hintText: '-0.938606,-78.600826',
+                          //hintText: '-0.938606,-78.600826',
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -122,7 +121,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                         keyboardType: TextInputType.visiblePassword,
                         decoration: const InputDecoration(
                           labelText: 'IP del servicio',
-                          hintText: 'ej: 192.168.1.10',
+                          // hintText: 'ej: 192.168.1.10',
                           border: OutlineInputBorder(),
                         ),
                       ),
