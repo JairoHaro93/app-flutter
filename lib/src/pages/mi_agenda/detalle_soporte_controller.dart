@@ -18,7 +18,6 @@ class DetalleSoporteController extends GetxController {
   // Cliente (map bruto + campos mapeados)
   final clienteJson = Rxn<Map<String, dynamic>>();
   final isLoadingCliente = false.obs;
-
   final clienteCedula = ''.obs;
   final clienteNombre = ''.obs;
   final clienteDireccion = ''.obs;
@@ -34,7 +33,6 @@ class DetalleSoporteController extends GetxController {
   final clienteCortado = ''.obs;
   final clienteCoordenadas = ''.obs;
   final clienteFechaInstalacion = ''.obs;
-
   final soporte = Rxn<Soporte>();
   final soporteComentario = ''.obs;
 

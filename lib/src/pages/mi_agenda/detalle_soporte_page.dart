@@ -42,8 +42,19 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   _kv('Fecha', Fmt.date(t.fecha)),
                   _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
                   _kv('Vehículo', t.vehiculo),
-                  _kv('Comentario cliente', controller.soporteComentario.value),
+                  if (t.tipo == "LOS" || t.tipo == "VISITA")
+                    _kv(
+                      'Comentario cliente',
+                      controller.soporteComentario.value,
+                    ),
                   _kv('Diagnóstico', t.diagnostico),
+                  if (t.tipo == "TRASLADO EXT")
+                    kvLinkCoords(
+                      context: context,
+                      label: 'Coordenadas Ref',
+                      value: t.coordenadas,
+                    ),
+                  //
                 ],
               ),
               const SizedBox(height: 12),

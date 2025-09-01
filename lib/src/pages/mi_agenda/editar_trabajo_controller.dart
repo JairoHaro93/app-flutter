@@ -51,12 +51,14 @@ class EditarTrabajoController extends GetxController {
   final coordCtrl = TextEditingController();
   final ipCtrl = TextEditingController();
   final isTerminating = false.obs;
+  bool _isPicking = false;
 
   final _instProv = InstalacionProvider();
 
   bool get esInstalacion =>
       (trabajo.value?.tipo.toUpperCase() ?? '') == 'INSTALACION';
-
+  bool get esTrasladoExt =>
+      (trabajo.value?.tipo.toUpperCase() ?? '') == 'TRASLADO EXT';
   @override
   void onInit() {
     super.onInit();
@@ -83,13 +85,26 @@ class EditarTrabajoController extends GetxController {
       SnackbarService.warning('Este trabajo no tiene ORD_INS');
       return;
     }
+    if (_isPicking) return;
+    _isPicking = true;
 
-    await _mostrarOpcionesImagen(
-      campo: campo,
-      tabla: 'neg_t_instalaciones',
-      id: t.ordIns.toString(),
-      directorio: t.ordIns.toString(),
-    );
+    try {
+      final src = await _elegirFuenteImagen();
+      if (src == null) return; // canceló
+
+      // Asegura que la hoja terminó de cerrarse antes de abrir picker
+      await Future.delayed(const Duration(milliseconds: 120));
+
+      await _tomarOSubir(
+        source: src,
+        campo: campo,
+        tabla: 'neg_t_instalaciones',
+        id: t.ordIns.toString(),
+        directorio: t.ordIns.toString(),
+      );
+    } finally {
+      _isPicking = false;
+    }
   }
 
   Future<void> seleccionarImagenVisita(String campo) async {
@@ -98,12 +113,47 @@ class EditarTrabajoController extends GetxController {
       SnackbarService.warning('Este VIS/LOS no tiene idTipo');
       return;
     }
+    if (_isPicking) return;
+    _isPicking = true;
 
-    await _mostrarOpcionesImagen(
-      campo: campo,
-      tabla: 'neg_t_vis',
-      id: t.idTipo.toString(),
-      directorio: t.idTipo.toString(),
+    try {
+      final src = await _elegirFuenteImagen();
+      if (src == null) return;
+
+      await Future.delayed(const Duration(milliseconds: 120));
+
+      await _tomarOSubir(
+        source: src,
+        campo: campo,
+        tabla: 'neg_t_vis',
+        id: t.idTipo.toString(),
+        directorio: t.idTipo.toString(),
+      );
+    } finally {
+      _isPicking = false;
+    }
+  }
+
+  Future<ImageSource?> _elegirFuenteImagen() async {
+    return await Get.bottomSheet<ImageSource>(
+      SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Tomar foto'),
+              onTap: () => Get.back(result: ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Seleccionar de galería'),
+              onTap: () => Get.back(result: ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+      backgroundColor: Colors.white,
     );
   }
 
@@ -250,7 +300,7 @@ class EditarTrabajoController extends GetxController {
           perm != LocationPermission.deniedForever) {
         final pos = await Geolocator.getCurrentPosition();
         texto +=
-            '\nLat: ${pos.latitude.toStringAsFixed(5)}, Lng: ${pos.longitude.toStringAsFixed(5)} $fecha   ';
+            '\n ${pos.latitude.toStringAsFixed(5)},${pos.longitude.toStringAsFixed(5)} $fecha   ';
       } else {
         texto += '\nSin coordenadas';
       }
@@ -394,6 +444,44 @@ class EditarTrabajoController extends GetxController {
     }
   }
 
+  Future<String> _sellarSolucion(String base) async {
+    // Fecha/hora local en formato dd/MM/yyyy HH:mm
+    final now = DateTime.now();
+    final fecha =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    // Técnico (username o name; ajusta si prefieres otro campo)
+    final tecnico =
+        (authService.currentUser?.username ??
+                authService.currentUser?.name ??
+                'desconocido')
+            .trim();
+
+    // Coordenadas (permite “Sin coordenadas” si no hay permisos/servicio)
+    String coordsTxt = 'Sin coordenadas';
+    try {
+      final service = await Geolocator.isLocationServiceEnabled();
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (service &&
+          perm != LocationPermission.denied &&
+          perm != LocationPermission.deniedForever) {
+        final pos = await Geolocator.getCurrentPosition();
+        coordsTxt =
+            'Lat: ${pos.latitude.toStringAsFixed(5)}, Lng: ${pos.longitude.toStringAsFixed(5)}';
+      }
+    } catch (_) {
+      // mantenemos "Sin coordenadas"
+    }
+
+    // Sello (se agrega al final de la solución ingresada por el técnico)
+    final sello = '\n\n— Guardada por: $tecnico | $fecha | $coordsTxt';
+    return base + sello;
+  }
+
   // ---------- Guardar solución ----------
   Future<void> guardarSolucion() async {
     final t = trabajo.value;
@@ -407,13 +495,14 @@ class EditarTrabajoController extends GetxController {
 
     isSaving.value = true;
     try {
-      // Actualiza estado a CONCLUIDO (ajusta si usas otro flujo)
-      final actualizado = t.copyWith(estado: 'CONCLUIDO', solucion: sol);
+      // ✅ Sella la solución con técnico, fecha y coordenadas
+      final solSellada = await _sellarSolucion(sol);
+
+      final actualizado = t.copyWith(estado: 'CONCLUIDO', solucion: solSellada);
 
       await _agendaProv.actualizarAgendaSolucionByAgenda(t.id, actualizado);
 
       SnackbarService.success('Solución guardada');
-      // Devuelve OK al caller (Detalle INST/Soporte) para que refresque
       Get.back(result: true);
     } catch (e) {
       SnackbarService.error('No se pudo guardar la solución: $e');
@@ -468,9 +557,16 @@ class EditarTrabajoController extends GetxController {
       }
 
       // 2) Guardar solución (si hay texto)
+      // 2) Guardar solución (si hay texto)
       final sol = solucionController.text.trim();
       if (sol.isNotEmpty) {
-        final actualizado = t.copyWith(estado: 'CONCLUIDO', solucion: sol);
+        // ✅ Sella la solución con técnico, fecha y coordenadas
+        final solSellada = await _sellarSolucion(sol);
+
+        final actualizado = t.copyWith(
+          estado: 'CONCLUIDO',
+          solucion: solSellada,
+        );
 
         await _agendaProv.actualizarAgendaSolucionByAgenda(t.id, actualizado);
         trabajo.value = actualizado; // refresca en memoria

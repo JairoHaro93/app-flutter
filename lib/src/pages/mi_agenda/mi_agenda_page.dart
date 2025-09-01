@@ -68,7 +68,9 @@ class _AgendaCard extends StatelessWidget {
         onTap: () {
           switch (tipoUpper) {
             case 'LOS':
+            case 'TRASLADO EXT':
             case 'VISITA':
+            case 'RETIRO':
               Get.toNamed('/detalle-soporte', arguments: item);
               break;
             case 'INSTALACION':
@@ -213,6 +215,10 @@ class _AgendaCard extends StatelessWidget {
         return const Color(0xFF007BFF); // azul
       case 'LOS':
         return const Color(0xFFFFE900); // amarillo
+      case 'TRASLADO EXT':
+        return const Color.fromRGBO(228, 30, 178, 1);
+      case 'RETIRO':
+        return const Color.fromRGBO(220, 53, 69, 1);
       default:
         return Colors.grey;
     }

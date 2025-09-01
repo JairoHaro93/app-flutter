@@ -66,7 +66,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 const SizedBox(height: 12),
 
                 // ---- GALERÍA VIS/LOS ----
-                if (!controller.esInstalacion)
+                if (t.tipo == "LOS" || t.tipo == "VISITA" || t.tipo == "RETIRO")
                   _card(
                     title: 'Imágenes Visita',
                     children: [
@@ -103,7 +103,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 const SizedBox(height: 12),
 
                 // ---- CAMPOS EXTRAS SOLO PARA INSTALACIÓN ----
-                if (controller.esInstalacion)
+                if (controller.esInstalacion || controller.esTrasladoExt)
                   _card(
                     title: 'Finalizar instalación',
                     children: [

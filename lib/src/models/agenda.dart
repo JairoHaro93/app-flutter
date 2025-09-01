@@ -1,9 +1,9 @@
 // lib/src/models/agenda.dart
 class Agenda {
   final int id;
+  final int ordIns;
   final String tipo;
   final String estado;
-  final int ordIns;
   final int idTipo;
   final int idSop;
   final String horaInicio;
