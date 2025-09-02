@@ -1,6 +1,9 @@
 // lib/src/pages/mi_agenda/editar_trabajo_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:redecom_app/main.dart';
+
 import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_controller.dart';
 
 class EditarTrabajoPage extends GetView<EditarTrabajoController> {
@@ -45,24 +48,28 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
               padding: const EdgeInsets.all(16),
               children: [
                 // ---- GALERÍA INSTALACIÓN ----
-                _card(
-                  title: 'Imágenes Instalación',
-                  children: [
-                    if (t.ordIns == 0)
-                      const Text('Este trabajo no tiene ORD_INS asignado.')
-                    else
-                      _gridCampos(
-                        context: context,
-                        campos: camposInst,
-                        obtenerUrl:
-                            (campo) =>
-                                controller.imagenesInstalacion[campo]?.url,
-                        onAddOrReplace:
-                            (campo) =>
-                                controller.seleccionarImagenInstalacion(campo),
-                      ),
-                  ],
-                ),
+                if (t.tipo == "INSTALACION" ||
+                    t.tipo == "TRASLADO EXT" ||
+                    t.tipo == "VISITA" ||
+                    t.tipo == "MIGRACION")
+                  _card(
+                    title: 'Imágenes Instalación',
+                    children: [
+                      if (t.ordIns == 0)
+                        const Text('Este trabajo no tiene ORD_INS asignado.')
+                      else
+                        _gridCampos(
+                          context: context,
+                          campos: camposInst,
+                          obtenerUrl:
+                              (campo) =>
+                                  controller.imagenesInstalacion[campo]?.url,
+                          onAddOrReplace:
+                              (campo) => controller
+                                  .seleccionarImagenInstalacion(campo),
+                        ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
 
                 // ---- GALERÍA VIS/LOS ----
@@ -85,6 +92,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 const SizedBox(height: 24),
 
                 // ---- SOLUCIÓN ----
+                //if (t.tipo == "INSTALACION" || t.tipo == "TRASLADO EXT" || t.tipo == "RETIRO")
                 _card(
                   title: 'Solución',
                   children: [
@@ -103,16 +111,30 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 const SizedBox(height: 12),
 
                 // ---- CAMPOS EXTRAS SOLO PARA INSTALACIÓN ----
-                if (controller.esInstalacion || controller.esTrasladoExt)
+                if (t.tipo == "INSTALACION" ||
+                    t.tipo == "TRASLADO EXT" ||
+                    t.tipo == "MIGRACION")
                   _card(
                     title: 'Finalizar instalación',
                     children: [
                       TextFormField(
                         controller: controller.coordCtrl,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Coordenadas confirmadas',
-                          //hintText: '-0.938606,-78.600826',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            tooltip: 'Elegir en mapa',
+                            onPressed: () async {
+                              final result = await Get.toNamed(
+                                Routes.mapSelect,
+                              );
+                              if (result is LatLng) {
+                                controller.coordCtrl.text =
+                                    '${result.latitude.toStringAsFixed(6)},${result.longitude.toStringAsFixed(6)}';
+                              }
+                            },
+                            icon: const Icon(Icons.map),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -121,14 +143,11 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                         keyboardType: TextInputType.visiblePassword,
                         decoration: const InputDecoration(
                           labelText: 'IP del servicio',
-                          // hintText: 'ej: 192.168.1.10',
                           border: OutlineInputBorder(),
                         ),
                       ),
                     ],
                   ),
-
-                const SizedBox(height: 24),
 
                 // ---- ÚNICO BOTÓN GUARDAR ----
                 Obx(() {

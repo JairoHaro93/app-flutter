@@ -71,6 +71,7 @@ class _AgendaCard extends StatelessWidget {
             case 'TRASLADO EXT':
             case 'VISITA':
             case 'RETIRO':
+            case 'MIGRACION':
               Get.toNamed('/detalle-soporte', arguments: item);
               break;
             case 'INSTALACION':
@@ -217,6 +218,8 @@ class _AgendaCard extends StatelessWidget {
         return const Color(0xFFFFE900); // amarillo
       case 'TRASLADO EXT':
         return const Color.fromRGBO(228, 30, 178, 1);
+      case 'MIGRACION':
+        return const Color.fromRGBO(113, 17, 192, 1);
       case 'RETIRO':
         return const Color.fromRGBO(220, 53, 69, 1);
       default:

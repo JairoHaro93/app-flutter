@@ -5,6 +5,9 @@ import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'package:redecom_app/src/pages/common/GoogleMaps/map_picker_page.dart';
+import 'package:redecom_app/src/pages/common/GoogleMaps/map_test_page.dart';
+
 // PAGES
 import 'package:redecom_app/src/pages/home/home_page.dart';
 import 'package:redecom_app/src/pages/login/login_page.dart';
@@ -25,11 +28,24 @@ class Routes {
   static const detalleInstalacion = '/detalle-instalacion';
   static const detalleSoporte = '/detalle-soporte';
   static const editarTrabajo = '/editar-trabajo';
+
+  // 👇 añade estas dos
+  static const mapTest = '/map/test';
+  static const mapSelect = '/map/seleccionar';
 }
 
 class AuthGuard extends GetMiddleware {
   @override
   RouteSettings? redirect(String? route) {
+    // Rutas públicas que NO requieren login:
+    const publicRoutes = {
+      Routes.login,
+      Routes.mapTest,
+      Routes.mapSelect,
+      '/404',
+    };
+
+    if (publicRoutes.contains(route)) return null;
     final token = (GetStorage().read('token') ?? '').toString();
     if (token.isEmpty && route != Routes.login) {
       return const RouteSettings(name: Routes.login);
@@ -69,6 +85,12 @@ class MyApp extends StatelessWidget {
             : (isLoggedIn ? Routes.home : Routes.login);
 
     return GetMaterialApp(
+      routingCallback: (routing) {
+        debugPrint(
+          'ROUTING -> current: ${routing?.current}, previous: ${routing?.previous}',
+        );
+      },
+
       title: 'Redecom App',
       debugShowCheckedModeBanner: false,
 
@@ -114,6 +136,11 @@ class MyApp extends StatelessWidget {
           page: () => const EditarTrabajoPage(),
           binding: EditarAgendaBinding(),
           middlewares: [AuthGuard()],
+        ),
+        GetPage(name: Routes.mapTest, page: () => const MapTestPage()),
+        GetPage(
+          name: Routes.mapSelect,
+          page: () => const MapPickerPage(), // temporal
         ),
       ],
 

@@ -13,6 +13,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:redecom_app/src/utils/auth_service.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class EditarTrabajoController extends GetxController {
   // --------- Dependencias ---------
@@ -149,52 +150,6 @@ class EditarTrabajoController extends GetxController {
               leading: const Icon(Icons.photo_library),
               title: const Text('Seleccionar de galería'),
               onTap: () => Get.back(result: ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-      backgroundColor: Colors.white,
-    );
-  }
-
-  Future<void> _mostrarOpcionesImagen({
-    required String campo,
-    required String tabla,
-    required String id,
-    required String directorio,
-  }) async {
-    await Get.bottomSheet(
-      SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Tomar foto'),
-              onTap: () async {
-                Get.back();
-                await _tomarOSubir(
-                  source: ImageSource.camera,
-                  campo: campo,
-                  tabla: tabla,
-                  id: id,
-                  directorio: directorio,
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Seleccionar de galería'),
-              onTap: () async {
-                Get.back();
-                await _tomarOSubir(
-                  source: ImageSource.gallery,
-                  campo: campo,
-                  tabla: tabla,
-                  id: id,
-                  directorio: directorio,
-                );
-              },
             ),
           ],
         ),
@@ -480,6 +435,25 @@ class EditarTrabajoController extends GetxController {
     // Sello (se agrega al final de la solución ingresada por el técnico)
     final sello = '\n\n— Guardada por: $tecnico | $fecha | $coordsTxt';
     return base + sello;
+  }
+
+  Future<void> abrirSelectorCoordenadas() async {
+    // Centrar en lo ya escrito, si es válido
+    LatLng? initial;
+    final raw = coordCtrl.text.trim();
+    final re = RegExp(r'^\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*$');
+    final m = re.firstMatch(raw);
+    if (m != null) {
+      final lat = double.tryParse(m.group(1)!);
+      final lng = double.tryParse(m.group(3)!);
+      if (lat != null && lng != null) initial = LatLng(lat, lng);
+    }
+
+    final result = await Get.toNamed('/map/seleccionar', arguments: initial);
+    if (result is LatLng) {
+      coordCtrl.text =
+          '${result.latitude.toStringAsFixed(6)},${result.longitude.toStringAsFixed(6)}';
+    }
   }
 
   // ---------- Guardar solución ----------

@@ -19,16 +19,26 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
-    defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.redecom.redecom_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+  defaultConfig {
+    applicationId = "com.redecom.redecom_app"
+    minSdk = flutter.minSdkVersion
+    targetSdk = flutter.targetSdkVersion
+    versionCode = flutter.versionCode
+    versionName = flutter.versionName
+
+    // Lee la clave desde gradle.properties o variable de entorno
+    val mapsApiKey: String = (providers.gradleProperty("MAPS_API_KEY").orNull)
+        ?: System.getenv("MAPS_API_KEY")
+        ?: ""
+
+    if (mapsApiKey.isBlank()) {
+        logger.warn("⚠️ MAPS_API_KEY está vacío. Define MAPS_API_KEY en gradle.properties o como variable de entorno.")
     }
+
+    // Kotlin DSL: usa paréntesis y strings
+    resValue("string", "google_maps_api_key", mapsApiKey)
+}
+
 
     buildTypes {
         release {
