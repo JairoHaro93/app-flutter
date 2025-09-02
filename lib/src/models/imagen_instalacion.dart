@@ -1,5 +1,5 @@
 // lib/src/models/imagen_instalacion.dart
-import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/environments/environment.dart';
 
 class ImagenInstalacion {
   final String ruta;

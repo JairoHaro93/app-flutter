@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/environments/environment.dart';
 
 class SocketService extends GetxService {
   IO.Socket? _socket;

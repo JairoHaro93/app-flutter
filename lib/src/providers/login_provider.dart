@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/environments/environment.dart';
 import 'package:redecom_app/src/models/response_api.dart';
 
 class LoginProvider extends GetConnect {

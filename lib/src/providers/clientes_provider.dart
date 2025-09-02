@@ -2,7 +2,7 @@
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/environments/environment.dart';
 
 class ClientesProvider extends GetConnect {
   ClientesProvider() {

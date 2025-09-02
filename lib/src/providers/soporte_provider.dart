@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/environments/environment.dart';
 import 'package:redecom_app/src/models/soporte.dart';
 
 class SoporteProvider extends GetConnect {

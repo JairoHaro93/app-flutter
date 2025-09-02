@@ -1,7 +1,7 @@
 // lib/src/providers/instalacion_provider.dart
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:redecom_app/src/environmets/environment.dart';
+import 'package:redecom_app/src/environments/environment.dart';
 import 'package:redecom_app/src/models/instalacion.dart';
 
 class InstalacionProvider extends GetConnect {
