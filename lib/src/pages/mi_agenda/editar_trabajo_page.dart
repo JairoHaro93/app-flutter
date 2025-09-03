@@ -51,6 +51,7 @@ class EditarTrabajoPage extends GetView<EditarTrabajoController> {
                 if (t.tipo == "INSTALACION" ||
                     t.tipo == "TRASLADO EXT" ||
                     t.tipo == "VISITA" ||
+                    t.tipo == "LOS" ||
                     t.tipo == "MIGRACION")
                   _card(
                     title: 'Imágenes Instalación',
