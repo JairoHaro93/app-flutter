@@ -14,6 +14,8 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:redecom_app/src/utils/socket_service.dart';
+import 'package:get_storage/get_storage.dart';
 
 class EditarTrabajoController extends GetxController {
   // --------- Dependencias ---------
@@ -23,6 +25,13 @@ class EditarTrabajoController extends GetxController {
   final AuthService authService = Get.find<AuthService>();
   // --------- Estado principal ---------
   final trabajo = Rxn<Agenda>();
+
+  final SocketService _socket = Get.find<SocketService>();
+  final AuthService _auth =
+      Get.isRegistered<AuthService>()
+          ? Get.find<AuthService>()
+          : AuthService(); // opcional si no siempre está registrado
+  final RxBool _isEmitting = false.obs;
   final isSaving = false.obs;
 
   // Campos “canónicos” que sueles usar (puedes ajustar orden/nombres si tu backend define otros)
@@ -293,6 +302,7 @@ class EditarTrabajoController extends GetxController {
     return stamped;
   }
 
+  /*
   Future<void> terminarInstalacion() async {
     final t = trabajo.value;
     if (t == null) {
@@ -334,7 +344,7 @@ class EditarTrabajoController extends GetxController {
       isTerminating.value = false;
     }
   }
-
+*/
   // ---------- Carga de miniaturas ----------
   Future<void> _cargarMiniaturas() async {
     final t = trabajo.value;
@@ -456,6 +466,28 @@ class EditarTrabajoController extends GetxController {
     }
   }
 
+  void _emitTrabajoCulminado(Agenda t) {
+    if (_isEmitting.value) return; // evita duplicados si algo dispara 2 veces
+    _isEmitting.value = true;
+    try {
+      final tecnicoId =
+          GetStorage().read('usuario_id') ?? authService.currentUser?.id;
+      final payload = {
+        'evento': 'trabajoCulminado',
+        'trabajo_id': t.id,
+        'tipo': t.tipo,
+        'estado': 'CULMINADO',
+        'ord_ins': t.ordIns, // 0 si no aplica
+        'id_tipo': t.idTipo, // 0 si no aplica (VIS/LOS/RETIRO)
+        'tecnico_id': tecnicoId,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+      _socket.emit('trabajoCulminado', payload);
+    } finally {
+      _isEmitting.value = false;
+    }
+  }
+
   // ---------- Guardar solución ----------
   Future<void> guardarSolucion() async {
     final t = trabajo.value;
@@ -469,12 +501,13 @@ class EditarTrabajoController extends GetxController {
 
     isSaving.value = true;
     try {
-      // ✅ Sella la solución con técnico, fecha y coordenadas
       final solSellada = await _sellarSolucion(sol);
-
       final actualizado = t.copyWith(estado: 'CONCLUIDO', solucion: solSellada);
-
       await _agendaProv.actualizarAgendaSolucionByAgenda(t.id, actualizado);
+      trabajo.value = actualizado;
+
+      // 👉 emite
+      _emitTrabajoCulminado(actualizado);
 
       SnackbarService.success('Solución guardada');
       Get.back(result: true);
@@ -486,7 +519,6 @@ class EditarTrabajoController extends GetxController {
   }
 
   Future<void> guardarTodo() async {
-    // evita dobles taps
     if (isSaving.value || isTerminating.value) return;
 
     final t = trabajo.value;
@@ -494,6 +526,9 @@ class EditarTrabajoController extends GetxController {
       SnackbarService.error('No hay trabajo cargado');
       return;
     }
+
+    bool finalizoInstalacion = false;
+    bool actualizoSolucion = false;
 
     try {
       isSaving.value = true;
@@ -528,29 +563,31 @@ class EditarTrabajoController extends GetxController {
           ip: ip,
         );
         isTerminating.value = false;
+        finalizoInstalacion = true;
       }
 
       // 2) Guardar solución (si hay texto)
-      // 2) Guardar solución (si hay texto)
       final sol = solucionController.text.trim();
       if (sol.isNotEmpty) {
-        // ✅ Sella la solución con técnico, fecha y coordenadas
         final solSellada = await _sellarSolucion(sol);
-
         final actualizado = t.copyWith(
           estado: 'CONCLUIDO',
           solucion: solSellada,
         );
-
         await _agendaProv.actualizarAgendaSolucionByAgenda(t.id, actualizado);
         trabajo.value = actualizado; // refresca en memoria
+        actualizoSolucion = true;
       }
 
       SnackbarService.success('Cambios guardados');
-      // pequeña pausa para que el snackbar se vea
-      await Future.delayed(const Duration(milliseconds: 500));
 
-      // navega directo a home, reemplazando el stack
+      // 3) Emitir UNA SOLA VEZ si hubo alguna acción que concluya el trabajo
+      final tFinal = trabajo.value ?? t;
+      if (finalizoInstalacion || actualizoSolucion) {
+        _emitTrabajoCulminado(tFinal);
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
       Get.offAllNamed('/tecnico/mi-agenda');
     } catch (e) {
       // ignore: avoid_print
@@ -559,6 +596,46 @@ class EditarTrabajoController extends GetxController {
     } finally {
       isTerminating.value = false;
       isSaving.value = false;
+    }
+  }
+
+  Future<void> terminarInstalacion() async {
+    final t = trabajo.value;
+    if (t == null) {
+      SnackbarService.warning('No hay trabajo cargado');
+      return;
+    }
+    if (!esInstalacion) {
+      SnackbarService.warning('Este trabajo no es una instalación');
+      return;
+    }
+    if (t.ordIns == 0) {
+      SnackbarService.warning('El trabajo no tiene ORD_INS');
+      return;
+    }
+
+    final coords = coordCtrl.text.trim();
+    final ip = ipCtrl.text.trim();
+    if (coords.isEmpty || ip.isEmpty) {
+      SnackbarService.warning('Coordenadas e IP son obligatorias');
+      return;
+    }
+
+    try {
+      isTerminating.value = true;
+      await _instProv.terminarInstalacion(
+        ordIns: t.ordIns,
+        coordenadas: coords,
+        ip: ip,
+      );
+      SnackbarService.success('Instalación actualizada correctamente');
+
+      // 👉 emite
+      _emitTrabajoCulminado(t);
+    } catch (e) {
+      SnackbarService.error(e.toString());
+    } finally {
+      isTerminating.value = false;
     }
   }
 

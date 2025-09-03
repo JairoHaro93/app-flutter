@@ -1,4 +1,5 @@
 // lib/src/bindings/app_bindings.dart
+import 'dart:async';
 import 'package:get/get.dart';
 
 // Servicios globales
@@ -11,7 +12,6 @@ import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_controller.d
 import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_controller.dart';
 import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_controller.dart';
 
-/// Se ejecuta al iniciar la app. Registra servicios globales.
 class AppInitialBinding extends Bindings {
   @override
   void dependencies() {
@@ -19,18 +19,30 @@ class AppInitialBinding extends Bindings {
     final auth = Get.put<AuthService>(AuthService(), permanent: true);
     final socket = Get.put<SocketService>(SocketService(), permanent: true);
 
-    // 2) Si ya hay sesión válida al abrir la app, inicia socket
+    // 2) Arranque perezoso del socket si ya hay sesión (no bloqueante + timeout seguro)
     if (auth.isLoggedIn) {
-      // no await: el binding no es async; el init se ejecuta en background
-      // y SocketService está preparado para múltiples llamadas idempotentes
-      // (si ya está inicializado no hace nada).
-      // ignore: discarded_futures
-      socket.init();
+      unawaited(
+        socket.init().timeout(
+          const Duration(seconds: 6),
+          onTimeout: () => socket,
+        ),
+      );
     }
+
+    // 3) (Opcional recomendado) Reaccionar a cambios de sesión:
+    // Si tu AuthService expone algo como `RxBool loggedIn$`, usa:
+    // ever<bool>(auth.loggedIn$, (logged) {
+    //   if (logged) {
+    //     unawaited(socket.init().timeout(const Duration(seconds: 6), onTimeout: () => null));
+    //   } else {
+    //     // Cierra socket sin lanzar
+    //     unawaited(socket.disposeSafe());
+    //   }
+    // });
   }
 }
 
-/// Binding para Mi Agenda
+// Binding para Mi Agenda
 class MiAgendaBinding extends Bindings {
   @override
   void dependencies() {
@@ -38,7 +50,7 @@ class MiAgendaBinding extends Bindings {
   }
 }
 
-/// Binding para Detalle Instalación
+// Binding para Detalle Instalación
 class DetalleInstalacionBinding extends Bindings {
   @override
   void dependencies() {
@@ -49,7 +61,7 @@ class DetalleInstalacionBinding extends Bindings {
   }
 }
 
-/// Binding para Detalle Soporte (VISITA/LOS)
+// Binding para Detalle Soporte (VISITA/LOS)
 class DetalleSoporteBinding extends Bindings {
   @override
   void dependencies() {
@@ -60,7 +72,7 @@ class DetalleSoporteBinding extends Bindings {
   }
 }
 
-/// Binding para Editar Agenda
+// Binding para Editar Agenda
 class EditarAgendaBinding extends Bindings {
   @override
   void dependencies() {

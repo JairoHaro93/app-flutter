@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -28,8 +29,6 @@ class Routes {
   static const detalleInstalacion = '/detalle-instalacion';
   static const detalleSoporte = '/detalle-soporte';
   static const editarTrabajo = '/editar-trabajo';
-
-  // 👇 añade estas dos
   static const mapTest = '/map/test';
   static const mapSelect = '/map/seleccionar';
 }
@@ -37,15 +36,14 @@ class Routes {
 class AuthGuard extends GetMiddleware {
   @override
   RouteSettings? redirect(String? route) {
-    // Rutas públicas que NO requieren login:
     const publicRoutes = {
       Routes.login,
       Routes.mapTest,
       Routes.mapSelect,
       '/404',
     };
-
     if (publicRoutes.contains(route)) return null;
+
     final token = (GetStorage().read('token') ?? '').toString();
     if (token.isEmpty && route != Routes.login) {
       return const RouteSettings(name: Routes.login);
@@ -54,31 +52,68 @@ class AuthGuard extends GetMiddleware {
   }
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await GetStorage.init();
+Future<void> _prewarmNonBlocking() async {
+  // Nada aquí debe bloquear el primer frame: usar timeouts y capturar errores.
+  try {
+    await GetStorage.init().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => false,
+    );
+  } catch (_) {}
+  try {
+    Intl.defaultLocale = 'es_EC';
+    await initializeDateFormatting(
+      'es_EC',
+    ).timeout(const Duration(seconds: 3), onTimeout: () => null);
+  } catch (_) {}
 
-  final box = GetStorage();
-  final isFirstInstall = box.read('first_install_done') != true;
-  if (isFirstInstall) {
-    await box.erase();
-    await box.write('first_install_done', true);
-  }
-
-  Intl.defaultLocale = 'es_EC';
-  await initializeDateFormatting('es_EC');
-
-  runApp(MyApp(isFirstInstall: isFirstInstall));
+  // Evita borrar storage en frío si hay latencias; muévelo a un flujo explícito
+  // o mantenlo pero no bloqueante:
+  try {
+    final box = GetStorage();
+    final isFirstInstall = box.read('first_install_done') != true;
+    if (isFirstInstall) {
+      // Hazlo sin bloquear: no esperes el erase para avanzar
+      // (si quieres, hazlo luego de mostrar el primer frame).
+      unawaited(box.erase());
+      await box.write('first_install_done', true);
+    }
+  } catch (_) {}
 }
 
-class MyApp extends StatelessWidget {
-  final bool isFirstInstall;
-  const MyApp({super.key, required this.isFirstInstall});
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Captura errores tempranos que romperían el arranque silenciosamente
+  FlutterError.onError = (details) {
+    FlutterError.dumpErrorToConsole(details);
+  };
+
+  runZonedGuarded(
+    () async {
+      // Lanza la app YA; el trabajo pesado se hace en background controlado
+      runApp(const BootstrapApp());
+
+      // Precalienta cosas sin bloquear el primer frame:
+      await _prewarmNonBlocking();
+    },
+    (error, stack) {
+      // Aquí puedes loguear a Sentry/Crashlytics si usas
+      // print('Uncaught zone error: $error\n$stack');
+    },
+  );
+}
+
+class BootstrapApp extends StatelessWidget {
+  const BootstrapApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Calcula la ruta inicial de forma *sincrónica* desde GetStorage (rápido)
     final box = GetStorage();
+    final isFirstInstall = box.read('first_install_done') != true;
     final isLoggedIn = (box.read('token') ?? '').toString().isNotEmpty;
+
     final initialRoute =
         isFirstInstall
             ? Routes.login
@@ -90,16 +125,11 @@ class MyApp extends StatelessWidget {
           'ROUTING -> current: ${routing?.current}, previous: ${routing?.previous}',
         );
       },
-
       title: 'Redecom App',
       debugShowCheckedModeBanner: false,
-
       initialBinding: AppInitialBinding(),
       initialRoute: initialRoute,
-
-      // Transición por defecto (opcional)
       defaultTransition: Transition.cupertino,
-
       getPages: [
         GetPage(name: Routes.login, page: () => LoginPage()),
         GetPage(
@@ -112,7 +142,6 @@ class MyApp extends StatelessWidget {
           page: () => PerfilInfoPage(),
           middlewares: [AuthGuard()],
         ),
-
         GetPage(
           name: Routes.miAgenda,
           page: () => const MiAgendaPage(),
@@ -138,19 +167,14 @@ class MyApp extends StatelessWidget {
           middlewares: [AuthGuard()],
         ),
         GetPage(name: Routes.mapTest, page: () => const MapTestPage()),
-        GetPage(
-          name: Routes.mapSelect,
-          page: () => const MapPickerPage(), // temporal
-        ),
+        GetPage(name: Routes.mapSelect, page: () => const MapPickerPage()),
       ],
-
       unknownRoute: GetPage(
         name: '/404',
         page:
             () =>
                 const Scaffold(body: Center(child: Text('Ruta no encontrada'))),
       ),
-
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.white,
@@ -176,7 +200,6 @@ class MyApp extends StatelessWidget {
         ),
         canvasColor: Colors.white,
       ),
-
       navigatorKey: Get.key,
     );
   }
