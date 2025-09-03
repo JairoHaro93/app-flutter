@@ -436,7 +436,7 @@ class EditarTrabajoController extends GetxController {
           perm != LocationPermission.deniedForever) {
         final pos = await Geolocator.getCurrentPosition();
         coordsTxt =
-            'Lat: ${pos.latitude.toStringAsFixed(5)}, Lng: ${pos.longitude.toStringAsFixed(5)}';
+            '${pos.latitude.toStringAsFixed(5)},${pos.longitude.toStringAsFixed(5)}';
       }
     } catch (_) {
       // mantenemos "Sin coordenadas"
