@@ -15,30 +15,14 @@ import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_controller.dart';
 class AppInitialBinding extends Bindings {
   @override
   void dependencies() {
-    // 1) Servicios singleton
-    final auth = Get.put<AuthService>(AuthService(), permanent: true);
-    final socket = Get.put<SocketService>(SocketService(), permanent: true);
+    final auth = Get.find<AuthService>(); // ya registrado en main()
+    final socket = Get.find<SocketService>(); // ya registrado en main()
 
-    // 2) Arranque perezoso del socket si ya hay sesión (no bloqueante + timeout seguro)
     if (auth.isLoggedIn) {
-      unawaited(
-        socket.init().timeout(
-          const Duration(seconds: 6),
-          onTimeout: () => socket,
-        ),
-      );
+      socket.init().catchError((_) {
+        // log sin hacer logout
+      });
     }
-
-    // 3) (Opcional recomendado) Reaccionar a cambios de sesión:
-    // Si tu AuthService expone algo como `RxBool loggedIn$`, usa:
-    // ever<bool>(auth.loggedIn$, (logged) {
-    //   if (logged) {
-    //     unawaited(socket.init().timeout(const Duration(seconds: 6), onTimeout: () => null));
-    //   } else {
-    //     // Cierra socket sin lanzar
-    //     unawaited(socket.disposeSafe());
-    //   }
-    // });
   }
 }
 

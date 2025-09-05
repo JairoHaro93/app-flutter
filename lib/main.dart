@@ -20,6 +20,8 @@ import 'package:redecom_app/src/pages/perfil/perfil_info_page.dart';
 
 // BINDINGS
 import 'package:redecom_app/src/bindings/app_bindings.dart';
+import 'package:redecom_app/src/utils/auth_service.dart';
+import 'package:redecom_app/src/utils/socket_service.dart';
 
 class Routes {
   static const login = '/';
@@ -44,8 +46,11 @@ class AuthGuard extends GetMiddleware {
     };
     if (publicRoutes.contains(route)) return null;
 
-    final token = (GetStorage().read('token') ?? '').toString();
-    if (token.isEmpty && route != Routes.login) {
+    // final token = (GetStorage().read('token') ?? '').toString(); // ❌
+    final auth = Get.find<AuthService>(); // ✅
+    final hasSession = auth.isLoggedIn; // lee storage internamente
+
+    if (!hasSession && route != Routes.login) {
       return const RouteSettings(name: Routes.login);
     }
     return null;
@@ -53,53 +58,37 @@ class AuthGuard extends GetMiddleware {
 }
 
 Future<void> _prewarmNonBlocking() async {
-  // Nada aquí debe bloquear el primer frame: usar timeouts y capturar errores.
-  try {
-    await GetStorage.init().timeout(
-      const Duration(seconds: 3),
-      onTimeout: () => false,
-    );
-  } catch (_) {}
   try {
     Intl.defaultLocale = 'es_EC';
     await initializeDateFormatting(
       'es_EC',
     ).timeout(const Duration(seconds: 3), onTimeout: () => null);
   } catch (_) {}
-
-  // Evita borrar storage en frío si hay latencias; muévelo a un flujo explícito
-  // o mantenlo pero no bloqueante:
-  try {
-    final box = GetStorage();
-    final isFirstInstall = box.read('first_install_done') != true;
-    if (isFirstInstall) {
-      // Hazlo sin bloquear: no esperes el erase para avanzar
-      // (si quieres, hazlo luego de mostrar el primer frame).
-      unawaited(box.erase());
-      await box.write('first_install_done', true);
-    }
-  } catch (_) {}
+  // ❌ Elimina este bloque:
+  // final box = GetStorage();
+  // if (box.read('first_install_done') != true) {
+  //   unawaited(box.erase());
+  //   await box.write('first_install_done', true);
+  // }
 }
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Captura errores tempranos que romperían el arranque silenciosamente
-  FlutterError.onError = (details) {
-    FlutterError.dumpErrorToConsole(details);
-  };
+  // ➊ Inicializa GetStorage ANTES de runApp
+  await GetStorage.init();
+
+  // (opcional pero recomendado) registra AuthService/SocketService aquí:
+  Get.put<AuthService>(AuthService(), permanent: true);
+  Get.put<SocketService>(SocketService(), permanent: true);
 
   runZonedGuarded(
     () async {
-      // Lanza la app YA; el trabajo pesado se hace en background controlado
-      runApp(const BootstrapApp());
-
-      // Precalienta cosas sin bloquear el primer frame:
-      await _prewarmNonBlocking();
+      runApp(const BootstrapApp()); // ahora ya hay storage
+      await _prewarmNonBlocking(); // puede precalentar LO QUE NO TOQUE storage
     },
     (error, stack) {
-      // Aquí puedes loguear a Sentry/Crashlytics si usas
-      // print('Uncaught zone error: $error\n$stack');
+      /* log */
     },
   );
 }
@@ -111,13 +100,10 @@ class BootstrapApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Calcula la ruta inicial de forma *sincrónica* desde GetStorage (rápido)
     final box = GetStorage();
-    final isFirstInstall = box.read('first_install_done') != true;
+
     final isLoggedIn = (box.read('token') ?? '').toString().isNotEmpty;
 
-    final initialRoute =
-        isFirstInstall
-            ? Routes.login
-            : (isLoggedIn ? Routes.home : Routes.login);
+    final initialRoute = isLoggedIn ? Routes.home : Routes.login;
 
     return GetMaterialApp(
       routingCallback: (routing) {
