@@ -1,52 +1,29 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# VS Code: incluir solo settings.json (para FVM)
+.vscode/*
+!.vscode/settings.json
+# (Opcional) comparte también recomendaciones de extensiones
+!.vscode/extensions.json
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# Android caches y varios
+**/.gradle/
+android/.gradle/
+android/captures/
+# Si usas Google Services y no quieres publicarlos:
+**/google-services.json
 
-# VS Code (opcional, descomenta si no quieres compartir tu configuración)
-#.vscode/
+# iOS / CocoaPods / Flutter generados
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+# Si no quieres publicarlo:
+**/GoogleService-Info.plist
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
+# Linux/Windows/Mac ephemeral de Flutter
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+macos/Flutter/ephemeral/
 
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio build artifacts
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Config / credenciales sensibles
-/android/gradle.properties
-/android/local.properties
-android/app/*.keystore
-android/app/*.jks
-
-# Tu carpeta de entornos locales
-/lib/src/environments/
+# Tests/coverage
+coverage/
