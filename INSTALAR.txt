@@ -9,3 +9,15 @@ flutter install
 flutter clean
 flutter pub get
 flutter run
+
+
+Dev (Node:3000): 
+flutter run --dart-define=FLAVOR=dev
+
+Test (Nginx LAN): 
+flutter run --dart-define=FLAVOR=test
+
+Prod (Nginx público): 
+
+flutter build apk --release --dart-define=FLAVOR=prod 
+flutter install

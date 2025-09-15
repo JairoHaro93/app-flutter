@@ -137,7 +137,7 @@ class EditarTrabajoController extends GetxController {
         campo: campo,
         tabla: 'neg_t_vis',
         id: t.idTipo.toString(),
-        directorio: t.idTipo.toString(),
+        directorio: t.ordIns.toString(),
       );
     } finally {
       _isPicking = false;
@@ -145,6 +145,11 @@ class EditarTrabajoController extends GetxController {
   }
 
   Future<ImageSource?> _elegirFuenteImagen() async {
+    // ✅ Forzar cámara (simple de revertir)
+    return ImageSource.camera;
+
+    //----------MOSTRAR OPCION SELECCIONAR DESDE GALERIA
+    /*
     return await Get.bottomSheet<ImageSource>(
       SafeArea(
         child: Column(
@@ -165,6 +170,7 @@ class EditarTrabajoController extends GetxController {
       ),
       backgroundColor: Colors.white,
     );
+*/
   }
 
   Future<void> _tomarOSubir({
