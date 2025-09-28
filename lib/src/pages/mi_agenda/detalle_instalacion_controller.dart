@@ -10,12 +10,14 @@ import 'package:redecom_app/src/providers/instalacion_provider.dart';
 import 'package:redecom_app/src/providers/clientes_provider.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
+import 'package:redecom_app/src/providers/images_provider.dart';
 
 class DetalleInstalacionController extends GetxController {
   // Providers
   final instalacionProvider = InstalacionProvider();
   final clientesProvider = ClientesProvider();
   final imagenesProvider = ImagenesProvider();
+  final imagesProvider = ImagesProvider();
 
   // Estado bruto
   final instalacion = Rxn<Instalacion>();
@@ -146,10 +148,12 @@ class DetalleInstalacionController extends GetxController {
     _busyImgs.value = true;
     isLoadingImgs.value = true;
     try {
+      /*
       final map = await imagenesProvider.getImagenesPorAgenda(
         'neg_t_instalaciones',
         inst.ordIns, // string
-      );
+      );*/
+      final map = await imagesProvider.listInstalacionAsLegacyMap(inst.ordIns);
       imagenesInstalacion.assignAll(map);
     } catch (e) {
       if (kDebugMode) debugPrint('⚠️ No se cargaron imágenes: $e');

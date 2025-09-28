@@ -77,6 +77,9 @@ class _AgendaCard extends StatelessWidget {
             case 'INSTALACION':
               Get.toNamed('/detalle-instalacion', arguments: item);
               break;
+            case 'INFRAESTRUCTURA':
+              Get.toNamed('/editar-infra', arguments: item);
+              break;
             default:
               Get.snackbar(
                 'Tipo desconocido',

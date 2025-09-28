@@ -6,12 +6,14 @@ import 'package:redecom_app/src/providers/clientes_provider.dart';
 import 'package:redecom_app/src/providers/imagenes_provider.dart';
 import 'package:redecom_app/src/providers/soporte_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
+import 'package:redecom_app/src/providers/images_provider.dart'; // << NUEVO
 
 class DetalleSoporteController extends GetxController {
   // Providers
   final clientesProvider = ClientesProvider();
   final imagenesProvider = ImagenesProvider();
   final soporteProvider = SoporteProvider();
+  final imagesProvider = ImagesProvider(); // << NUEVO
   // Agenda recibido por args
   late final Agenda agenda;
 
@@ -208,13 +210,16 @@ class DetalleSoporteController extends GetxController {
     _busyImgsVis.value = true;
     isLoadingImgsVis.value = true;
     try {
-      final map = await imagenesProvider.getImagenesPorAgenda(
+      // NUEVO: backend nuevo con shape legacy
+      final map = await imagesProvider.getLegacyMap(
         'neg_t_vis',
         idVis.toString(),
       );
       imagenesVis.assignAll(map);
+
+      // debug opcional
+      // print('[IMG][VIS] keys -> ${imagenesVis.keys.toList()}');
     } catch (e) {
-      // ignore: avoid_print
       print('⚠️ No se pudieron cargar imágenes VIS/LOS: $e');
       imagenesVis.clear();
     } finally {
@@ -236,13 +241,16 @@ class DetalleSoporteController extends GetxController {
     _busyImgsInst.value = true;
     isLoadingImgsInst.value = true;
     try {
-      final map = await imagenesProvider.getImagenesPorAgenda(
+      // NUEVO: backend nuevo con shape legacy
+      final map = await imagesProvider.getLegacyMap(
         'neg_t_instalaciones',
         ordIns.toString(),
       );
       imagenesInstalacion.assignAll(map);
+
+      // debug opcional
+      // print('[IMG][INST] keys -> ${imagenesInstalacion.keys.toList()}');
     } catch (e) {
-      // ignore: avoid_print
       print('⚠️ No se pudieron cargar imágenes de INSTALACIÓN: $e');
       imagenesInstalacion.clear();
     } finally {

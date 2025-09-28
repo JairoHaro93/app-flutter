@@ -1,6 +1,7 @@
 // lib/src/bindings/app_bindings.dart
 import 'dart:async';
 import 'package:get/get.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_infra_controller.dart';
 
 // Servicios globales
 import 'package:redecom_app/src/utils/auth_service.dart';
@@ -12,16 +13,29 @@ import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_controller.d
 import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_controller.dart';
 import 'package:redecom_app/src/pages/mi_agenda/editar_trabajo_controller.dart';
 
+import 'package:redecom_app/src/providers/images_provider.dart';
+
 class AppInitialBinding extends Bindings {
   @override
   void dependencies() {
-    final auth = Get.find<AuthService>(); // ya registrado en main()
-    final socket = Get.find<SocketService>(); // ya registrado en main()
+    // Asegura servicios globales (por si arrancas sin registrarlos en main)
+    if (!Get.isRegistered<AuthService>()) {
+      Get.put<AuthService>(AuthService(), permanent: true);
+    }
+    if (!Get.isRegistered<SocketService>()) {
+      Get.put<SocketService>(SocketService(), permanent: true);
+    }
+
+    final auth = Get.find<AuthService>();
+    final socket = Get.find<SocketService>();
 
     if (auth.isLoggedIn) {
-      socket.init().catchError((_) {
-        // log sin hacer logout
-      });
+      // No bloquea el arranque si falla
+      unawaited(
+        socket.init().catchError((_) {
+          // log opcional
+        }),
+      );
     }
   }
 }
@@ -62,6 +76,20 @@ class EditarAgendaBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<EditarTrabajoController>(
       () => EditarTrabajoController(),
+      fenix: true,
+    );
+  }
+}
+
+class EditarInfraBinding extends Bindings {
+  @override
+  void dependencies() {
+    if (!Get.isRegistered<ImagesProvider>()) {
+      Get.lazyPut<ImagesProvider>(() => ImagesProvider(), fenix: true);
+    }
+    // AuthService ya está en AppInitialBinding (permanent: true). No re-registrar.
+    Get.lazyPut<EditarInfraestructuraController>(
+      () => EditarInfraestructuraController(),
       fenix: true,
     );
   }

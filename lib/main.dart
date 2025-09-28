@@ -12,6 +12,8 @@ import 'package:redecom_app/src/pages/common/GoogleMaps/map_test_page.dart';
 // PAGES
 import 'package:redecom_app/src/pages/home/home_page.dart';
 import 'package:redecom_app/src/pages/login/login_page.dart';
+import 'package:redecom_app/src/pages/mi_agenda/editar_infra_page.dart'
+    show EditarInfraestructuraPage;
 import 'package:redecom_app/src/pages/mi_agenda/mi_agenda_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/detalle_instalacion_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/detalle_soporte_page.dart';
@@ -33,6 +35,8 @@ class Routes {
   static const editarTrabajo = '/editar-trabajo';
   static const mapTest = '/map/test';
   static const mapSelect = '/map/seleccionar';
+  static const detalleInfraestructura = '/detalle-infraestructura';
+  static const editarInfraestructura = '/editar-infra';
 }
 
 class AuthGuard extends GetMiddleware {
@@ -154,6 +158,12 @@ class BootstrapApp extends StatelessWidget {
         ),
         GetPage(name: Routes.mapTest, page: () => const MapTestPage()),
         GetPage(name: Routes.mapSelect, page: () => const MapPickerPage()),
+
+        GetPage(
+          name: Routes.editarInfraestructura,
+          page: () => const EditarInfraestructuraPage(),
+          binding: EditarInfraBinding(),
+        ),
       ],
       unknownRoute: GetPage(
         name: '/404',

@@ -16,10 +16,12 @@ import 'package:redecom_app/src/utils/auth_service.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:redecom_app/src/utils/socket_service.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:redecom_app/src/providers/images_provider.dart';
 
 class EditarTrabajoController extends GetxController {
   // --------- Dependencias ---------
   final _imgsProv = ImagenesProvider();
+  final _imgsNew = ImagesProvider();
   final _agendaProv = AgendaProvider();
   final _picker = ImagePicker();
   final AuthService authService = Get.find<AuthService>();
@@ -201,11 +203,38 @@ class EditarTrabajoController extends GetxController {
       final estampada = await _procesarImagenConTexto(comprimida, campo);
 
       // 3) Subir
+      /*
       await _imgsProv.postImagenUnitaria(
         tabla: tabla,
         id: id,
         campo: campo,
         directorio: directorio,
+        file: estampada,
+      );
+*/
+
+      // Nuevo backend:
+      // instalaciones => module='instalaciones', tag = campo, position=0
+      // visitas       => module='visitas',       tag = 'img', position = N (de 'img_N')
+      late final String module;
+      late final String tag;
+      int position = 0;
+
+      if (tabla == 'neg_t_instalaciones') {
+        module = 'instalaciones';
+        tag = campo; // fachada, router, ont, ...
+        position = 0;
+      } else {
+        module = 'visitas';
+        tag = 'img';
+        final m = RegExp(r'^img_(\d+)$').firstMatch(campo);
+        position = m != null ? int.parse(m.group(1)!) : 0;
+      }
+      await _imgsNew.upload(
+        module: module,
+        entityId: id,
+        tag: tag,
+        position: position,
         file: estampada,
       );
 
@@ -357,24 +386,33 @@ class EditarTrabajoController extends GetxController {
     if (t == null) return;
 
     try {
-      // Instalación (id = ordIns como string)
+      // Instalación (ord_ins) SIEMPRE que exista
       if (t.ordIns != 0) {
-        final map = await _imgsProv.getImagenesPorAgenda(
-          'neg_t_instalaciones',
+        final mapInst = await _imgsNew.listInstalacionAsLegacyMap(
           t.ordIns.toString(),
         );
-        imagenesInstalacion.assignAll(map);
+        imagenesInstalacion
+          ..clear()
+          ..assignAll(mapInst);
+        // debug opcional:
+        // print('[IMG] instalacion keys: ${imagenesInstalacion.keys.toList()}');
       } else {
         imagenesInstalacion.clear();
       }
 
-      // VIS/LOS (id = age_id_tipo)
-      if (!esInstalacion && t.idTipo != 0) {
-        final map = await _imgsProv.getImagenesPorAgenda(
-          'neg_t_vis',
+      // VIS/LOS/RETIRO: cargar imágenes de la visita (idTipo) desde el NUEVO backend
+      final tipo = (t.tipo ?? '').toUpperCase();
+      final esVis = tipo == 'VISITA' || tipo == 'LOS' || tipo == 'RETIRO';
+
+      if (esVis && t.idTipo != 0) {
+        final mapVis = await _imgsNew.listVisitaAsLegacyMap(
           t.idTipo.toString(),
         );
-        imagenesVisita.assignAll(map);
+        imagenesVisita
+          ..clear()
+          ..assignAll(mapVis);
+        // debug opcional:
+        // print('[IMG] visita keys: ${imagenesVisita.keys.toList()}');
       } else {
         imagenesVisita.clear();
       }
@@ -390,8 +428,13 @@ class EditarTrabajoController extends GetxController {
 
     try {
       if (tipo == 'inst') {
+        /*
         final map = await _imgsProv.getImagenesPorAgenda(
           'neg_t_instalaciones',
+          t.ordIns.toString(),
+        );*/
+
+        final map = await _imgsNew.listInstalacionAsLegacyMap(
           t.ordIns.toString(),
         );
         final nuevo = map[campo];
@@ -400,10 +443,14 @@ class EditarTrabajoController extends GetxController {
           imagenesInstalacion.refresh();
         }
       } else {
+        /*
         final map = await _imgsProv.getImagenesPorAgenda(
           'neg_t_vis',
           t.idTipo.toString(),
         );
+*/
+        final map = await _imgsNew.listVisitaAsLegacyMap(t.idTipo.toString());
+
         final nuevo = map[campo];
         if (nuevo != null) {
           imagenesVisita[campo] = nuevo;
