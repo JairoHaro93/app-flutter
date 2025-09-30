@@ -270,8 +270,26 @@ class EditarInfraestructuraController extends GetxController {
   }
 
   Future<ImageSource?> _elegirFuenteImagen() async {
-    // Puedes cambiar a bottom sheet si deseas permitir galería
-    return ImageSource.camera;
+    return await Get.bottomSheet<ImageSource>(
+      SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Tomar foto'),
+              onTap: () => Get.back(result: ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Seleccionar de galería'),
+              onTap: () => Get.back(result: ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+      backgroundColor: Colors.white,
+    );
   }
 
   Future<File> _comprimirImagen(

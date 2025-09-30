@@ -148,10 +148,10 @@ class EditarTrabajoController extends GetxController {
 
   Future<ImageSource?> _elegirFuenteImagen() async {
     // ✅ Forzar cámara (simple de revertir)
-    return ImageSource.camera;
+    // return ImageSource.camera;
 
     //----------MOSTRAR OPCION SELECCIONAR DESDE GALERIA
-    /*
+
     return await Get.bottomSheet<ImageSource>(
       SafeArea(
         child: Column(
@@ -172,7 +172,6 @@ class EditarTrabajoController extends GetxController {
       ),
       backgroundColor: Colors.white,
     );
-*/
   }
 
   Future<void> _tomarOSubir({
