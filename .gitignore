@@ -50,3 +50,6 @@ android/app/*.jks
 
 # Tu carpeta de entornos locales
 /lib/src/environments/
+
+/key/
+/android/key.properties
