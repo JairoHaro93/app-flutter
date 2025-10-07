@@ -1,4 +1,3 @@
-// lib/src/pages/mi_agenda/editar_infra_controller.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,13 +8,18 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
-import 'package:redecom_app/src/providers/images_provider.dart'; // <- tu provider nuevo
+import 'package:redecom_app/src/providers/images_provider.dart';
+import 'package:redecom_app/src/providers/agenda_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 import 'package:redecom_app/src/utils/auth_service.dart';
 
 class EditarInfraestructuraController extends GetxController {
   // ===== Dependencias =====
   final ImagesProvider _imgsProv = Get.find<ImagesProvider>();
+  final AgendaProvider _agendaProv =
+      Get.isRegistered<AgendaProvider>()
+          ? Get.find<AgendaProvider>()
+          : AgendaProvider();
   final AuthService _auth =
       Get.isRegistered<AuthService>() ? Get.find<AuthService>() : AuthService();
   final ImagePicker _picker = ImagePicker();
@@ -35,12 +39,20 @@ class EditarInfraestructuraController extends GetxController {
   final _busyLoad = false.obs;
   bool _isPicking = false;
 
+  // Controlador de texto para la solución
+  final solucionCtrl = TextEditingController();
+  final RxInt solucionLen = 0.obs; // reactividad del botón Concluir
+  void onSolucionChanged(String v) => solucionLen.value = v.trim().length;
+
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments;
     if (args is Agenda) {
       trabajo = args;
+      final prev = args.solucion?.trim() ?? '';
+      solucionCtrl.text = prev;
+      solucionLen.value = prev.length;
     } else {
       SnackbarService.error('No se recibió el trabajo de infraestructura');
       // fallback mínimo para evitar nulls
@@ -69,6 +81,15 @@ class EditarInfraestructuraController extends GetxController {
     recargar();
   }
 
+  @override
+  void onClose() {
+    solucionCtrl.dispose();
+    super.onClose();
+  }
+
+  // ===== Computed =====
+  bool get puedeConcluir => solucionLen.value > 0;
+
   // ===== Carga de imágenes (particiona por tag ref/infra) =====
   Future<void> recargar() async {
     if (_busyLoad.value) return;
@@ -82,8 +103,7 @@ class EditarInfraestructuraController extends GetxController {
       final entityId = _entityId();
       if (entityId == null) return;
 
-      // Usamos tu método "listAsLegacyMap" que ya devuelve claves legacy.
-      // Esperamos keys del tipo "ref_1", "infra_1", etc.
+      // Esperamos keys del tipo "referencia_1", "infra_1", etc.
       final all = await _imgsProv.listAsLegacyMap(
         module: 'infraestructura',
         entityId: entityId,
@@ -232,6 +252,41 @@ class EditarInfraestructuraController extends GetxController {
     } finally {
       isSaving.value = false;
       _isPicking = false;
+    }
+  }
+
+  // ===== Concluir trabajo =====
+  Future<void> concluir() async {
+    final texto = solucionCtrl.text.trim();
+    if (texto.isEmpty) {
+      SnackbarService.warning('La solución no puede estar vacía.');
+      return;
+    }
+
+    if (isSaving.value) return; // evitar doble submit
+
+    try {
+      isSaving.value = true;
+
+      // Construir un Agenda actualizado con estado y solución.
+      final actualizado = trabajo.copyWith(
+        estado: 'CONCLUIDO',
+        solucion: texto,
+      );
+
+      await _agendaProv.actualizarAgendaSolucionByAgenda(
+        trabajo.id,
+        actualizado,
+      );
+
+      SnackbarService.success('Trabajo concluido y guardado');
+      Get.back(result: true);
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ concluir: $e');
+      SnackbarService.error('No se pudo guardar la solución');
+    } finally {
+      isSaving.value = false;
     }
   }
 

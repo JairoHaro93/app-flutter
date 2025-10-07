@@ -225,6 +225,8 @@ class _AgendaCard extends StatelessWidget {
         return const Color.fromRGBO(113, 17, 192, 1);
       case 'RETIRO':
         return const Color.fromRGBO(220, 53, 69, 1);
+      case 'INFRAESTRUCTURA':
+        return const Color.fromRGBO(104, 102, 105, 1);
       default:
         return Colors.grey;
     }

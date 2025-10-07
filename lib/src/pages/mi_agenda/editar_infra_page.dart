@@ -1,4 +1,3 @@
-// lib/src/pages/mi_agenda/editar_infra_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:redecom_app/src/utils/date_helpers.dart';
@@ -81,7 +80,7 @@ class EditarInfraestructuraPage
 
               // Evidencias (dinámicas)
               _card(
-                title: 'Evidencias capturadas',
+                title: 'Imagenes',
                 trailing:
                     controller.isLoadingImgs.value
                         ? const SizedBox(
@@ -93,13 +92,58 @@ class EditarInfraestructuraPage
                 children: [
                   if (controller.evidencias.isEmpty &&
                       !controller.isLoadingImgs.value)
-                    const Text(
-                      'Aún no hay evidencias. Usa el botón "Agregar evidencia".',
-                    )
+                    const Text('Aún no hay evidencias.')
                   else
                     _gridEvidencias(),
                 ],
               ),
+              const SizedBox(height: 12),
+
+              // Solución + Concluir
+              _card(
+                title: 'Solución',
+                children: [
+                  Obx(
+                    () => TextField(
+                      controller: controller.solucionCtrl,
+                      onChanged:
+                          controller
+                              .onSolucionChanged, // <- necesario para reactividad
+                      enabled:
+                          !controller
+                              .isSaving
+                              .value, // <- opcional: bloquear mientras guarda
+                      maxLines: 4,
+                      minLines: 3,
+                      textInputAction: TextInputAction.newline,
+                      decoration: const InputDecoration(
+                        hintText: 'Descripción',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLength: 500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Obx(() {
+                    final canConclude =
+                        controller.puedeConcluir; // true si no está vacía
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            (canConclude && !controller.isSaving.value)
+                                ? controller.concluir
+                                : null,
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: Text(
+                          controller.isSaving.value ? 'Guardando…' : 'Concluir',
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+
               const SizedBox(height: 24),
             ],
           ),

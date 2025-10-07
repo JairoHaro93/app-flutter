@@ -21,3 +21,18 @@ Prod (Nginx público):
 
 flutter build apk --release --dart-define=FLAVOR=prod 
 flutter install
+
+
+
+keytool -genkey -v -keystore key/keystore.jks `
+        -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 `
+        -alias xair_1319
+
+
+
+C:\Program Files\Android\Android Studio\jbr\bin
+
+
+
+alias xair_1319
+password: claveparaapp68
