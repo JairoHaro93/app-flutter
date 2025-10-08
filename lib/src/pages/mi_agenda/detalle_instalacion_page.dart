@@ -1,9 +1,11 @@
 // lib/src/pages/mi_agenda/detalle_instalacion_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'detalle_instalacion_controller.dart';
+import 'package:redecom_app/src/utils/phone_helper.dart';
 import 'package:redecom_app/src/utils/date_helpers.dart';
 import 'package:redecom_app/src/utils/maps_helpers.dart';
-import 'detalle_instalacion_controller.dart';
 
 class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
   const DetalleInstalacionPage({super.key});
@@ -33,6 +35,7 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
       body: Obx(() {
         final inst = controller.instalacion.value;
         final t = controller.trabajo;
+
         if (controller.isLoadingInst.value && inst == null) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -45,24 +48,25 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // ======= DATOS INSTALACIÓN =======
               _card(
                 title: 'Datos Instalación',
-                trailing:
-                    controller.isLoadingInst.value
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : null,
+                trailing: Obx(
+                  () =>
+                      controller.isLoadingInst.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const SizedBox.shrink(),
+                ),
                 children: [
-                  //_kv('ORD_INS', inst.ordIns),
-                  _kv('Teléfonos', inst.instTelefonos),
-
+                  _kvW('Teléfonos', telefonosTappable(inst.instTelefonos)),
                   _kv('Fecha', Fmt.date(t.fecha)),
                   _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
-                  _kv('Vehículo', t.vehiculo),
-                  _kv('Observación', inst.instObservacion),
+                  _kv('Vehículo', t.vehiculo ?? '—'),
+                  _kv('Observación', inst.instObservacion ?? '—'),
                   kvLinkCoords(
                     context: context,
                     label: 'Coordenadas Ref',
@@ -70,18 +74,22 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 12),
 
+              // ======= DATOS CLIENTE =======
               _card(
                 title: 'Datos Cliente',
-                trailing:
-                    controller.isLoadingCliente.value
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : null,
+                trailing: Obx(
+                  () =>
+                      controller.isLoadingCliente.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const SizedBox.shrink(),
+                ),
                 children: [
                   _kv('Cédula', controller.clienteCedula.value),
                   _kv('Nombre', controller.clienteNombre.value),
@@ -89,45 +97,32 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                   _kv('Referencia', controller.clienteReferencia.value),
                   _kv('Teléfonos', controller.clienteTelefonos.value),
                   _kv('Plan', controller.clientePlan.value),
-                  //_kv('Estado', controller.clienteEstado.value),
-                  // _kv('Instalado por', controller.clienteInstaladoPor.value),
-                  //_kv('IP', controller.clienteIp.value),
                   _kv('Servicio', controller.clienteServicio.value),
-                  //_kv('Tipo instalación', controller.clienteTipoInstalacion.value,),
-                  //_kv('Estado instalación',controller.clienteEstadoInstalacion.value,),
-                  // _kv('Cortado', controller.clienteCortado.value),
-                  /*
-                  _kv(
-                    'Fecha instalación',
-                    Fmt.date(
-                      controller.clienteFechaInstalacion.value
-                          ?.toIso8601String(),
-                    ),
-                  ),
-*/
-                  // _kv('Coordenadas', controller.clienteCoordenadas.value),
                 ],
               ),
+
               const SizedBox(height: 12),
 
               // ======= GALERÍA =======
               _card(
                 title: 'Galería de imágenes',
-                trailing:
-                    controller.isLoadingImgs.value
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : IconButton(
-                          icon: const Icon(Icons.refresh),
-                          tooltip: 'Recargar imágenes',
-                          onPressed:
-                              () => controller.cargarImagenesInstalacion(
-                                force: true,
-                              ),
-                        ),
+                trailing: Obx(
+                  () =>
+                      controller.isLoadingImgs.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : IconButton(
+                            icon: const Icon(Icons.refresh),
+                            tooltip: 'Recargar imágenes',
+                            onPressed:
+                                () => controller.cargarImagenesInstalacion(
+                                  force: true,
+                                ),
+                          ),
+                ),
                 children: [
                   if (controller.imagenesInstalacion.isEmpty &&
                       !controller.isLoadingImgs.value)
@@ -180,6 +175,7 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
     );
   }
 
+  /// Par "clave: valor" donde el valor es un **String?**
   Widget _kv(String label, String? value) {
     final v = (value == null || value.trim().isEmpty) ? '—' : value.trim();
     return Padding(
@@ -196,6 +192,27 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
           ),
           const SizedBox(width: 8),
           Expanded(child: Text(v)),
+        ],
+      ),
+    );
+  }
+
+  /// Par "clave: valor" donde el valor es un **Widget** (por ejemplo chips, enlaces, etc.)
+  Widget _kvW(String label, Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: child),
         ],
       ),
     );
@@ -341,6 +358,46 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
           ],
         ),
       ),
+    );
+  }
+
+  // ---------- Teléfonos “tappeables” ----------
+  Widget telefonosTappable(String? telefonosCsv) {
+    final nums = PhoneHelper.parsePhones(
+      telefonosCsv,
+    ); // ✅ usa el parser correcto
+
+    if (nums.isEmpty) return const Text('—');
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children:
+          nums.map((n) {
+            return InkWell(
+              onTap: () => PhoneHelper.llamar(n),
+              onLongPress: () => Clipboard.setData(ClipboardData(text: n)),
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.phone, size: 16),
+                    const SizedBox(width: 6),
+                    Text(n),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
     );
   }
 }

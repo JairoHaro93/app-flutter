@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:flutter/services.dart';
 import 'detalle_soporte_controller.dart';
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/utils/maps_helpers.dart';
 import 'package:redecom_app/src/utils/date_helpers.dart';
+import 'package:redecom_app/src/utils/phone_helper.dart';
 
 class DetalleSoportePage extends GetView<DetalleSoporteController> {
   const DetalleSoportePage({super.key});
@@ -42,6 +43,9 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   _kv('Fecha', Fmt.date(t.fecha)),
                   _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
                   _kv('Vehículo', t.vehiculo),
+
+                  _kvW('Teléfono de registro', telefonosTappable(t.telefono)),
+
                   if (t.tipo == "LOS" || t.tipo == "VISITA")
                     _kv(
                       'Comentario cliente',
@@ -74,7 +78,11 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   _kv('Nombre', controller.clienteNombre.value),
                   _kv('Dirección', controller.clienteDireccion.value),
                   _kv('Referencia', controller.clienteReferencia.value),
-                  _kv('Teléfonos', controller.clienteTelefonos.value),
+
+                  _kvW(
+                    'Teléfonos',
+                    telefonosTappable(controller.clienteTelefonos.value),
+                  ),
                   _kv('Plan', controller.clientePlan.value),
                   _kv('Estado de Pago', controller.clienteEstado.value),
                   _kv('IP', controller.clienteIp.value),
@@ -362,6 +370,69 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
           ],
         ),
       ),
+    );
+  }
+
+  // ---------- Teléfonos “tappeables” ----------
+
+  /// Par "clave: valor" donde el valor es un **Widget** (por ejemplo chips, enlaces, etc.)
+  Widget _kvW(String label, Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+
+  // ---------- Teléfonos “tappeables” ----------
+  Widget telefonosTappable(String? telefonosCsv) {
+    final nums = PhoneHelper.parsePhones(
+      telefonosCsv,
+    ); // ✅ usa el parser correcto
+
+    if (nums.isEmpty) return const Text('—');
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children:
+          nums.map((n) {
+            return InkWell(
+              onTap: () => PhoneHelper.llamar(n),
+              onLongPress: () => Clipboard.setData(ClipboardData(text: n)),
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.phone, size: 16),
+                    const SizedBox(width: 6),
+                    Text(n),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
     );
   }
 }
