@@ -3,7 +3,6 @@ import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
 import 'package:redecom_app/src/models/soporte.dart';
 import 'package:redecom_app/src/providers/clientes_provider.dart';
-import 'package:redecom_app/src/providers/imagenes_provider.dart';
 import 'package:redecom_app/src/providers/soporte_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 import 'package:redecom_app/src/providers/images_provider.dart'; // << NUEVO
@@ -11,7 +10,6 @@ import 'package:redecom_app/src/providers/images_provider.dart'; // << NUEVO
 class DetalleSoporteController extends GetxController {
   // Providers
   final clientesProvider = ClientesProvider();
-  final imagenesProvider = ImagenesProvider();
   final soporteProvider = SoporteProvider();
   final imagesProvider = ImagesProvider(); // << NUEVO
   // Agenda recibido por args

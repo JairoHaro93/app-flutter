@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/instance_manager.dart';
+
 import 'package:redecom_app/src/pages/home/home_controller.dart';
 
+// ignore: must_be_immutable
 class HomePage extends StatelessWidget {
   HomeController con = Get.put(HomeController());
+
+  HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -105,45 +108,6 @@ class HomePage extends StatelessWidget {
           style: const ButtonStyle(
             backgroundColor: WidgetStatePropertyAll(Colors.white),
             iconColor: WidgetStatePropertyAll(Colors.black),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _cardOpcion(String area, String opcion) {
-    return GestureDetector(
-      onTap: () => con.gotoOpcion(opcion),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                height: 70,
-                width: 70,
-                child: Image.asset(
-                  'assets/img/$opcion.png',
-                  fit: BoxFit.contain,
-                  errorBuilder:
-                      (context, error, stackTrace) =>
-                          const Icon(Icons.image_not_supported, size: 50),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                opcion,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
           ),
         ),
       ),

@@ -23,14 +23,12 @@ flutter build apk --release --dart-define=FLAVOR=prod
 flutter install
 
 
+PROD
+Incrementa versión en pubspec.yaml (ej. version: 1.0.1+2).
 
-keytool -genkey -v -keystore key/keystore.jks `
-        -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 `
-        -alias xair_1319
+flutter build appbundle --release --dart-define=FLAVOR=prod
 
 
-
-C:\Program Files\Android\Android Studio\jbr\bin
 
 
 

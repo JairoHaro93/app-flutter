@@ -8,7 +8,7 @@ import 'package:redecom_app/src/models/instalacion.dart';
 
 import 'package:redecom_app/src/providers/instalacion_provider.dart';
 import 'package:redecom_app/src/providers/clientes_provider.dart';
-import 'package:redecom_app/src/providers/imagenes_provider.dart';
+
 import 'package:redecom_app/src/utils/snackbar_service.dart';
 import 'package:redecom_app/src/providers/images_provider.dart';
 
@@ -16,7 +16,7 @@ class DetalleInstalacionController extends GetxController {
   // Providers
   final instalacionProvider = InstalacionProvider();
   final clientesProvider = ClientesProvider();
-  final imagenesProvider = ImagenesProvider();
+
   final imagesProvider = ImagesProvider();
 
   // Estado bruto

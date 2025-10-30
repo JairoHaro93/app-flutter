@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:redecom_app/src/environments/environment.dart';
 import 'package:redecom_app/src/models/infraestructura.dart';
-import 'package:redecom_app/src/models/infraestructura.dart';
 
 class InfraestructuraProvider extends GetConnect {
   InfraestructuraProvider() {
@@ -39,7 +38,7 @@ class InfraestructuraProvider extends GetConnect {
     if (code >= 200 && code < 300 && body != null) {
       final Map<String, dynamic> map =
           (body is Map)
-              ? Map<String, dynamic>.from(body as Map)
+              ? Map<String, dynamic>.from(body)
               : json.decode(resp.bodyString ?? '{}') as Map<String, dynamic>;
       return Infraestructura.fromJson(map);
     }
@@ -59,7 +58,7 @@ class InfraestructuraProvider extends GetConnect {
     if (code >= 200 && code < 300 && body != null) {
       final Map<String, dynamic> map =
           (body is Map)
-              ? Map<String, dynamic>.from(body as Map)
+              ? Map<String, dynamic>.from(body)
               : json.decode(resp.bodyString ?? '{}') as Map<String, dynamic>;
       return Infraestructura.fromJson(map);
     }

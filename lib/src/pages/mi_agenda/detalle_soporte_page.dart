@@ -243,9 +243,6 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
       'equipo_1',
       'equipo_2',
       'equipo_3',
-      'evidencia_1',
-      'evidencia_2',
-      'evidencia_3',
     ];
     entries.sort((a, b) {
       final ia = orden.indexOf(a.key);

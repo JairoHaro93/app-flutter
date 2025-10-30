@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:redecom_app/src/models/agenda.dart';
 import 'package:redecom_app/src/models/imagen_instalacion.dart';
-import 'package:redecom_app/src/providers/imagenes_provider.dart';
 import 'package:redecom_app/src/providers/agenda_provider.dart';
 import 'package:redecom_app/src/providers/instalacion_provider.dart';
 import 'package:redecom_app/src/utils/snackbar_service.dart';
@@ -20,7 +19,7 @@ import 'package:redecom_app/src/providers/images_provider.dart';
 
 class EditarTrabajoController extends GetxController {
   // --------- Dependencias ---------
-  final _imgsProv = ImagenesProvider();
+
   final _imgsNew = ImagesProvider();
   final _agendaProv = AgendaProvider();
   final _picker = ImagePicker();
@@ -29,10 +28,7 @@ class EditarTrabajoController extends GetxController {
   final trabajo = Rxn<Agenda>();
 
   final SocketService _socket = Get.find<SocketService>();
-  final AuthService _auth =
-      Get.isRegistered<AuthService>()
-          ? Get.find<AuthService>()
-          : AuthService(); // opcional si no siempre está registrado
+
   final RxBool _isEmitting = false.obs;
   final isSaving = false.obs;
 
@@ -400,7 +396,7 @@ class EditarTrabajoController extends GetxController {
       }
 
       // VIS/LOS/RETIRO: cargar imágenes de la visita (idTipo) desde el NUEVO backend
-      final tipo = (t.tipo ?? '').toUpperCase();
+      final tipo = (t.tipo).toUpperCase();
       final esVis = tipo == 'VISITA' || tipo == 'LOS' || tipo == 'RETIRO';
 
       if (esVis && t.idTipo != 0) {

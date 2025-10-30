@@ -65,7 +65,7 @@ class DetalleInstalacionPage extends GetView<DetalleInstalacionController> {
                   _kvW('Teléfonos', telefonosTappable(inst.instTelefonos)),
                   _kv('Fecha', Fmt.date(t.fecha)),
                   _kv('Hora', '${t.horaInicio} - ${t.horaFin}'),
-                  _kv('Vehículo', t.vehiculo ?? '—'),
+                  _kv('Vehículo', t.vehiculo),
                   _kv('Observación', inst.instObservacion ?? '—'),
                   kvLinkCoords(
                     context: context,

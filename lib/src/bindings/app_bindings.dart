@@ -32,6 +32,7 @@ class AppInitialBinding extends Bindings {
     if (auth.isLoggedIn) {
       // No bloquea el arranque si falla
       unawaited(
+        // ignore: body_might_complete_normally_catch_error
         socket.init().catchError((_) {
           // log opcional
         }),
