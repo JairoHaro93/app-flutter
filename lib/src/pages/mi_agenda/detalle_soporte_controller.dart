@@ -49,6 +49,13 @@ class DetalleSoporteController extends GetxController {
   final _busyImgsVis = false.obs;
   final _busyImgsInst = false.obs;
 
+  // === IDs de conveniencia ===
+  int get ageIdVisita =>
+      agenda.id != 0
+          ? agenda.id
+          : agenda.idTipo; // entity_id para module='visitas'
+  int get ordIns => agenda.ordIns; // instalación asociada
+
   @override
   void onInit() {
     super.onInit();
@@ -199,8 +206,7 @@ class DetalleSoporteController extends GetxController {
   Future<void> _cargarImagenesVis({bool force = false}) async {
     if (_busyImgsVis.value && !force) return;
 
-    final idVis = agenda.idTipo; // id del registro VIS/LOS
-    if (idVis == 0) {
+    if (ageIdVisita == 0) {
       imagenesVis.clear();
       return;
     }
@@ -208,16 +214,13 @@ class DetalleSoporteController extends GetxController {
     _busyImgsVis.value = true;
     isLoadingImgsVis.value = true;
     try {
-      // NUEVO: backend nuevo con shape legacy
-      final map = await imagesProvider.getLegacyMap(
-        'neg_t_vis',
-        idVis.toString(),
+      // Nuevo: module='visitas', entity_id = ageIdVisita
+      final map = await imagesProvider.listVisitaAsLegacyMap(
+        ageIdVisita.toString(),
       );
       imagenesVis.assignAll(map);
-
-      // debug opcional
-      // print('[IMG][VIS] keys -> ${imagenesVis.keys.toList()}');
     } catch (e) {
+      // ignore: avoid_print
       print('⚠️ No se pudieron cargar imágenes VIS/LOS: $e');
       imagenesVis.clear();
     } finally {
@@ -230,7 +233,6 @@ class DetalleSoporteController extends GetxController {
   Future<void> _cargarImagenesInstalacion({bool force = false}) async {
     if (_busyImgsInst.value && !force) return;
 
-    final ordIns = agenda.ordIns;
     if (ordIns == 0) {
       imagenesInstalacion.clear();
       return;
@@ -239,16 +241,12 @@ class DetalleSoporteController extends GetxController {
     _busyImgsInst.value = true;
     isLoadingImgsInst.value = true;
     try {
-      // NUEVO: backend nuevo con shape legacy
-      final map = await imagesProvider.getLegacyMap(
-        'neg_t_instalaciones',
+      final map = await imagesProvider.listInstalacionAsLegacyMap(
         ordIns.toString(),
       );
       imagenesInstalacion.assignAll(map);
-
-      // debug opcional
-      // print('[IMG][INST] keys -> ${imagenesInstalacion.keys.toList()}');
     } catch (e) {
+      // ignore: avoid_print
       print('⚠️ No se pudieron cargar imágenes de INSTALACIÓN: $e');
       imagenesInstalacion.clear();
     } finally {

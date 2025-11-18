@@ -103,6 +103,7 @@ class ImagesProvider extends GetConnect {
     required String tag,
     int position = 0,
     required File file,
+    String? ordIns, // << NUEVO: para visitas
   }) async {
     if (!await file.exists()) {
       throw Exception('El archivo no existe: ${file.path}');
@@ -117,6 +118,11 @@ class ImagesProvider extends GetConnect {
           ..fields['entity_id'] = entityId
           ..fields['tag'] = tag
           ..fields['position'] = position.toString()
+          ..fields.addAll(
+            (module == 'visitas' && ordIns != null && ordIns.isNotEmpty)
+                ? {'ord_ins': ordIns}
+                : {},
+          )
           ..files.add(
             await http.MultipartFile.fromPath(
               'image', // <-- campo requerido por el backend nuevo

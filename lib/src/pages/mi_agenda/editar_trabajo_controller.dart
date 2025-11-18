@@ -67,6 +67,14 @@ class EditarTrabajoController extends GetxController {
       (trabajo.value?.tipo.toUpperCase() ?? '') == 'INSTALACION';
   bool get esTrasladoExt =>
       (trabajo.value?.tipo.toUpperCase() ?? '') == 'TRASLADO EXT';
+
+  // Preferimos el id de la agenda como entity_id de VIS/LOS; fallback a idTipo
+  int get _ageIdVisita {
+    final t = trabajo.value;
+    if (t == null) return 0;
+    return (t.id != 0) ? t.id : t.idTipo;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -117,8 +125,9 @@ class EditarTrabajoController extends GetxController {
 
   Future<void> seleccionarImagenVisita(String campo) async {
     final t = trabajo.value;
-    if (t == null || t.idTipo == 0) {
-      SnackbarService.warning('Este VIS/LOS no tiene idTipo');
+    final ageId = _ageIdVisita;
+    if (t == null || ageId == 0) {
+      SnackbarService.warning('Este VIS/LOS no tiene ID de agenda');
       return;
     }
     if (_isPicking) return;
@@ -133,9 +142,9 @@ class EditarTrabajoController extends GetxController {
       await _tomarOSubir(
         source: src,
         campo: campo,
-        tabla: 'neg_t_vis',
-        id: t.idTipo.toString(),
-        directorio: t.ordIns.toString(),
+        tabla: 'neg_t_vis', // para el switch interno (module='visitas')
+        id: ageId.toString(), // << entity_id = age_id
+        directorio: t.ordIns.toString(), // << lo usaremos como ord_ins
       );
     } finally {
       _isPicking = false;
@@ -214,16 +223,19 @@ class EditarTrabajoController extends GetxController {
       late final String module;
       late final String tag;
       int position = 0;
+      String? ordIns; // << NUEVO
 
       if (tabla == 'neg_t_instalaciones') {
         module = 'instalaciones';
         tag = campo; // fachada, router, ont, ...
         position = 0;
+        ordIns = null;
       } else {
         module = 'visitas';
         tag = 'img';
         final m = RegExp(r'^img_(\d+)$').firstMatch(campo);
         position = m != null ? int.parse(m.group(1)!) : 0;
+        ordIns = directorio; // << aquí directorio = ord_ins
       }
       await _imgsNew.upload(
         module: module,
@@ -231,6 +243,8 @@ class EditarTrabajoController extends GetxController {
         tag: tag,
         position: position,
         file: estampada,
+        ordIns:
+            ordIns, // << clave para que multer guarde en instalaciones/<ord_ins>/<age_id>/
       );
 
       // 4) Refrescar SOLO esa miniatura
@@ -399,17 +413,17 @@ class EditarTrabajoController extends GetxController {
       final tipo = (t.tipo).toUpperCase();
       final esVis = tipo == 'VISITA' || tipo == 'LOS' || tipo == 'RETIRO';
 
-      if (esVis && t.idTipo != 0) {
-        final mapVis = await _imgsNew.listVisitaAsLegacyMap(
-          t.idTipo.toString(),
-        );
-        imagenesVisita
-          ..clear()
-          ..assignAll(mapVis);
-        // debug opcional:
-        // print('[IMG] visita keys: ${imagenesVisita.keys.toList()}');
-      } else {
-        imagenesVisita.clear();
+      if (esVis) {
+        final ageId = _ageIdVisita; // 👈 preferimos el id de Agenda
+
+        if (ageId != 0) {
+          final mapVis = await _imgsNew.listVisitaAsLegacyMap(ageId.toString());
+          imagenesVisita
+            ..clear()
+            ..assignAll(mapVis);
+        } else {
+          imagenesVisita.clear();
+        }
       }
     } catch (e) {
       SnackbarService.error('No se pudieron cargar imágenes: $e');
@@ -444,8 +458,10 @@ class EditarTrabajoController extends GetxController {
           t.idTipo.toString(),
         );
 */
-        final map = await _imgsNew.listVisitaAsLegacyMap(t.idTipo.toString());
-
+        //  final map = await _imgsNew.listVisitaAsLegacyMap(t.idTipo.toString());
+        final map = await _imgsNew.listVisitaAsLegacyMap(
+          _ageIdVisita.toString(),
+        );
         final nuevo = map[campo];
         if (nuevo != null) {
           imagenesVisita[campo] = nuevo;

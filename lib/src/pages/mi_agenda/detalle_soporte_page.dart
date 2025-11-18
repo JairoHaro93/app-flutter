@@ -121,8 +121,8 @@ class DetalleSoportePage extends GetView<DetalleSoporteController> {
                   ],
                 ),
                 children: [
-                  if (t.idTipo == 0) ...[
-                    const Text('Sin ID de VIS/LOS (idTipo = 0)'),
+                  if (controller.ageIdVisita == 0) ...[
+                    const Text('Sin ID de VIS/LOS (ageId = 0)'),
                   ] else if (controller.imagenesVis.isEmpty &&
                       !controller.isLoadingImgsVis.value) ...[
                     const Text('Sin imágenes registradas'),
