@@ -21,6 +21,7 @@ class HomePage extends StatelessWidget {
             _drawerEncabezado(),
             _boton1Drawer(),
             _boton2Drawer(),
+            _botonMiHorarioDrawer(), // <-- NUEVO
             _boton3Drawer(),
           ],
         ),
@@ -46,6 +47,17 @@ class HomePage extends StatelessWidget {
                   .map((entry) => _cardArea(entry.key, entry.value))
                   .toList(),
         ),
+      ),
+    );
+  }
+
+  Container _botonMiHorarioDrawer() {
+    return Container(
+      color: Colors.red,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => con.gotoMiHorario(),
+        child: const Text('Mi Horario'),
       ),
     );
   }

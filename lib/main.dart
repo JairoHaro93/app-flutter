@@ -11,6 +11,7 @@ import 'package:redecom_app/src/pages/common/GoogleMaps/map_test_page.dart';
 
 // PAGES
 import 'package:redecom_app/src/pages/home/home_page.dart';
+import 'package:redecom_app/src/pages/home/mi_horario_page.dart';
 import 'package:redecom_app/src/pages/login/login_page.dart';
 import 'package:redecom_app/src/pages/mi_agenda/editar_infra_page.dart'
     show EditarInfraestructuraPage;
@@ -37,6 +38,7 @@ class Routes {
   static const mapSelect = '/map/seleccionar';
   static const detalleInfraestructura = '/detalle-infraestructura';
   static const editarInfraestructura = '/editar-infra';
+  static const miHorario = '/home/mi-horario';
 }
 
 class AuthGuard extends GetMiddleware {
@@ -163,6 +165,13 @@ class BootstrapApp extends StatelessWidget {
           name: Routes.editarInfraestructura,
           page: () => const EditarInfraestructuraPage(),
           binding: EditarInfraBinding(),
+        ),
+
+        GetPage(
+          name: Routes.miHorario,
+          page: () => const MiHorarioPage(),
+          binding: MiHorarioBinding(),
+          middlewares: [AuthGuard()],
         ),
       ],
       unknownRoute: GetPage(

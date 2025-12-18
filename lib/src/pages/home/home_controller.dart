@@ -134,4 +134,8 @@ class HomeController extends GetxController {
       SnackbarService.warning('Función no implementada: $opcion');
     }
   }
+
+  void gotoMiHorario() {
+    Get.toNamed('/home/mi-horario');
+  }
 }

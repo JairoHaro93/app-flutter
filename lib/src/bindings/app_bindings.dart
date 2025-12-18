@@ -1,7 +1,9 @@
 // lib/src/bindings/app_bindings.dart
 import 'dart:async';
 import 'package:get/get.dart';
+import 'package:redecom_app/src/pages/home/mi_horario_controller.dart';
 import 'package:redecom_app/src/pages/mi_agenda/editar_infra_controller.dart';
+import 'package:redecom_app/src/providers/mi_horario_provider.dart';
 
 // Servicios globales
 import 'package:redecom_app/src/utils/auth_service.dart';
@@ -91,6 +93,21 @@ class EditarInfraBinding extends Bindings {
     // AuthService ya está en AppInitialBinding (permanent: true). No re-registrar.
     Get.lazyPut<EditarInfraestructuraController>(
       () => EditarInfraestructuraController(),
+      fenix: true,
+    );
+  }
+}
+
+// Binding para Mi Horario (Turnos + Asistencias)
+class MiHorarioBinding extends Bindings {
+  @override
+  void dependencies() {
+    if (!Get.isRegistered<MiHorarioProvider>()) {
+      Get.lazyPut<MiHorarioProvider>(() => MiHorarioProvider(), fenix: true);
+    }
+
+    Get.lazyPut<MiHorarioController>(
+      () => MiHorarioController(provider: Get.find<MiHorarioProvider>()),
       fenix: true,
     );
   }
