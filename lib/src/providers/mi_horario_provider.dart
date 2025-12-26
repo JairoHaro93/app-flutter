@@ -61,7 +61,6 @@ class MiHorarioProvider extends GetConnect {
   Future<MiHorarioSemanaResponse> getMiHorarioSemana({
     required String fecha,
   }) async {
-    // ✅ usa Uri para no romper query params
     final uri = Uri.parse(
       '${_base}turnos/mi-horario',
     ).replace(queryParameters: {'fecha': fecha});
@@ -97,5 +96,66 @@ class MiHorarioProvider extends GetConnect {
     if (res.status.hasError) {
       throw Exception(res.bodyString ?? 'Error al guardar');
     }
+  }
+
+  // ✅ CORREGIDO: tu backend lo tiene bajo /justificacion/...
+  Future<void> postJustificacionAtraso({
+    required int turnoId,
+    required String motivo,
+  }) async {
+    final url = '${_base}justificacion/$turnoId/justificaciones/atraso';
+    final body = {'motivo': motivo.trim()};
+
+    final res = await post(url, body, headers: _headers);
+
+    if (res.status.hasError) {
+      throw Exception(
+        res.bodyString ?? 'Error al solicitar justificación de atraso',
+      );
+    }
+  }
+
+  // ✅ CORREGIDO: tu backend lo tiene bajo /justificacion/...
+  Future<void> postJustificacionSalida({
+    required int turnoId,
+    required String motivo,
+  }) async {
+    final url = '${_base}justificacion/$turnoId/justificaciones/salida';
+    final body = {'motivo': motivo.trim()};
+
+    final res = await post(url, body, headers: _headers);
+
+    if (res.status.hasError) {
+      throw Exception(
+        res.bodyString ?? 'Error al solicitar justificación de salida',
+      );
+    }
+  }
+
+  // (Opcional) Bandeja de pendientes para jefe
+  Future<List<dynamic>> getPendientesJustificaciones({
+    required String desde, // YYYY-MM-DD
+    required String hasta, // YYYY-MM-DD
+    int? usuarioId,
+  }) async {
+    final uri = Uri.parse(
+      '${_base}justificacion/justificaciones/pendientes',
+    ).replace(
+      queryParameters: {
+        'desde': desde,
+        'hasta': hasta,
+        if (usuarioId != null) 'usuario_id': usuarioId.toString(),
+      },
+    );
+
+    final res = await get(uri.toString(), headers: _headers);
+
+    if (res.status.hasError) {
+      throw Exception(res.bodyString ?? 'Error al obtener pendientes');
+    }
+
+    // tu backend devuelve array directo
+    final body = res.body;
+    return (body is List) ? body : [];
   }
 }

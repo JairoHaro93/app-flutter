@@ -12,6 +12,7 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   Widget build(BuildContext context) {
     final dfRange = DateFormat('dd/MM/yyyy', 'es_EC');
     final dfDay = DateFormat('EEEE dd/MM', 'es_EC');
+    final dfTime = DateFormat('HH:mm', 'es_EC');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi Horario')),
@@ -29,7 +30,7 @@ class MiHorarioPage extends GetView<MiHorarioController> {
                       ),
                   child: ListView(
                     padding: const EdgeInsets.all(12),
-                    children: [_listaSemana(context, dfDay)],
+                    children: [_listaSemana(context, dfDay, dfTime)],
                   ),
                 ),
               ),
@@ -41,7 +42,7 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   }
 
   // =========================
-  //   HEADER SEMANA
+  // HEADER SEMANA
   // =========================
   Widget _headerSemana(BuildContext context, DateFormat dfRange) {
     return Card(
@@ -128,18 +129,19 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   }
 
   // =========================
-  //   LISTA SEMANA
+  // LISTA SEMANA
   // =========================
-  Widget _listaSemana(BuildContext context, DateFormat dfDay) {
+  Widget _listaSemana(
+    BuildContext context,
+    DateFormat dfDay,
+    DateFormat dfTime,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Obx(() {
           final items = controller.dias;
-
-          if (items.isEmpty) {
-            return const Text('Sin datos para esta semana.');
-          }
+          if (items.isEmpty) return const Text('Sin datos para esta semana.');
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,10 +156,7 @@ class MiHorarioPage extends GetView<MiHorarioController> {
                 final isPast = controller.isPastDay(d.fecha);
                 final isToday = controller.isToday(d.fecha);
 
-                // ✅ IMPORTANTE: ya NO hacemos “parches” aquí.
-                // El estado UI oficial sale SOLO del controller.estadoUI(d)
                 final estado = controller.estadoUI(d);
-
                 final subtitleBase =
                     d.tieneTurno
                         ? 'Prog: ${d.horaEntradaProg ?? '-'} - ${d.horaSalidaProg ?? '-'}'
@@ -179,8 +178,6 @@ class MiHorarioPage extends GetView<MiHorarioController> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(width: 10),
-
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,6 +190,13 @@ class MiHorarioPage extends GetView<MiHorarioController> {
                               ),
                               const SizedBox(height: 4),
                               Text(subtitleBase),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Marcado: ${_fmtHora(d.horaEntradaReal, dfTime)} - ${_fmtHora(d.horaSalidaReal, dfTime)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
 
                               if (obs.isNotEmpty) ...[
                                 const SizedBox(height: 4),
@@ -228,7 +232,7 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   }
 
   // =========================
-  //   TRAILING EN COLUMNAS
+  // TRAILING EN COLUMNAS
   // =========================
   Widget _trailingEnColumnas(
     BuildContext context,
@@ -237,7 +241,7 @@ class MiHorarioPage extends GetView<MiHorarioController> {
     bool isToday,
     String estadoUI,
   ) {
-    final chipAsistencia = _chipFor(
+    final chipAsistencia = _chipAsistencia(
       tieneTurno: d.tieneTurno,
       isPast: isPast,
       isToday: isToday,
@@ -245,10 +249,25 @@ class MiHorarioPage extends GetView<MiHorarioController> {
     );
 
     final chipHoraAcum = _chipHoraAcumulada(d);
-    final stHA = d.estadoHoraAcumulada.toString().trim().toUpperCase();
+    final chipJustA = _chipJustificacion(
+      labelPrefix: 'ATR',
+      estado: d.justAtrasoEstado,
+    );
+    final chipJustS = _chipJustificacion(
+      labelPrefix: 'SAL',
+      estado: d.justSalidaEstado,
+    );
 
-    // ✅ Si está APROBADO, NO se puede editar ni mostrar botón
-    final mostrarBotonObs = isToday && d.tieneTurno && stHA != 'APROBADO';
+    final stHA = d.estadoHoraAcumulada.toUpperCase().trim();
+    final tipoDia = d.tipoDia.toUpperCase().trim();
+
+    // Mostrar botón si el día es NORMAL y tiene turno.
+
+    final mostrarBoton = isToday && d.tieneTurno && tipoDia == 'NORMAL';
+
+    // Si está APROBADO, igual puedes permitir justificaciones, pero no obs/HA.
+    // El controller backend ya bloquea obs/HA, y nosotros lo manejamos en el diálogo.
+    // (No ocultamos el botón por APROBADO)
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -256,12 +275,14 @@ class MiHorarioPage extends GetView<MiHorarioController> {
       children: [
         chipAsistencia,
         if (chipHoraAcum != null) ...[const SizedBox(height: 6), chipHoraAcum],
-        if (mostrarBotonObs) ...[
-          const SizedBox(height: 4),
+        if (chipJustA != null) ...[const SizedBox(height: 6), chipJustA],
+        if (chipJustS != null) ...[const SizedBox(height: 6), chipJustS],
+        if (mostrarBoton) ...[
+          const SizedBox(height: 6),
           IconButton(
-            onPressed: () => _dialogObservacion(context, d),
-            tooltip: 'Observación',
-            icon: const Icon(Icons.edit_note, size: 20),
+            onPressed: () => _dialogEditarDia(context, d),
+            tooltip: 'Editar día',
+            icon: const Icon(Icons.edit_note, size: 22),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             visualDensity: VisualDensity.compact,
@@ -272,9 +293,9 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   }
 
   // =========================
-  //   CHIPS / ESTADOS
+  // CHIPS
   // =========================
-  Widget _chipFor({
+  Widget _chipAsistencia({
     required bool tieneTurno,
     required bool isPast,
     required bool isToday,
@@ -282,15 +303,13 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   }) {
     if (!tieneTurno) return _chip('SIN TURNO', Colors.grey);
 
-    // ✅ Estados especiales por tipo_dia (pisan todo)
+    // tipo_dia pisa
     if (estadoUI == 'DEVOLUCIÓN') return _chip('DEVOLUCIÓN', Colors.purple);
     if (estadoUI == 'VACACIONES') return _chip('VACACIONES', Colors.indigo);
     if (estadoUI == 'PERMISO') return _chip('PERMISO', Colors.teal);
 
-    // ✅ Si controller devuelve PROGRAMADO, pintamos PROGRAMADO siempre
     if (estadoUI == 'PROGRAMADO') return _chip('PROGRAMADO', Colors.blue);
 
-    // PASADO
     if (isPast) {
       switch (estadoUI) {
         case 'COMPLETO':
@@ -313,7 +332,6 @@ class MiHorarioPage extends GetView<MiHorarioController> {
       }
     }
 
-    // HOY
     if (isToday) {
       if (estadoUI == 'EN CURSO') return _chip('EN CURSO', Colors.blue);
       if (estadoUI == 'COMPLETO') return _chip('COMPLETO', Colors.green);
@@ -327,16 +345,15 @@ class MiHorarioPage extends GetView<MiHorarioController> {
       return _chip(estadoUI.isEmpty ? 'SIN ESTADO' : estadoUI, Colors.grey);
     }
 
-    // FUTURO (por seguridad)
     return _chip('PROGRAMADO', Colors.blue);
   }
 
   Widget? _chipHoraAcumulada(DiaHorarioSemana d) {
-    final st = (d.estadoHoraAcumulada ?? 'NO').toString().trim().toUpperCase();
+    final st = d.estadoHoraAcumulada.toString().trim().toUpperCase();
     if (st.isEmpty || st == 'NO') return null;
 
     final h = d.numHorasAcumuladas;
-    final label = 'H.A. ${_shortEstadoHA(st)}${h != null ? ' ${h}h' : ''}';
+    final label = 'H.A. ${_shortEstado(st)}${h != null ? ' ${h}h' : ''}';
 
     final color =
         st == 'SOLICITUD'
@@ -351,14 +368,40 @@ class MiHorarioPage extends GetView<MiHorarioController> {
     );
   }
 
-  String _shortEstadoHA(String st) {
+  Widget? _chipJustificacion({
+    required String labelPrefix,
+    required String estado,
+  }) {
+    final st =
+        (estado).toUpperCase().trim(); // NO | PENDIENTE | APROBADA | RECHAZADA
+    if (st.isEmpty || st == 'NO') return null;
+
+    final label = '$labelPrefix ${_shortEstado(st)}';
+    final color =
+        st == 'PENDIENTE'
+            ? Colors.orange
+            : st == 'APROBADA'
+            ? Colors.green
+            : Colors.red;
+
+    return Tooltip(
+      message: 'Justificación $labelPrefix: $st',
+      child: _chip(label, color),
+    );
+  }
+
+  String _shortEstado(String st) {
     switch (st) {
       case 'SOLICITUD':
         return 'SOL';
       case 'APROBADO':
+      case 'APROBADA':
         return 'OK';
       case 'RECHAZADO':
+      case 'RECHAZADA':
         return 'RECH';
+      case 'PENDIENTE':
+        return 'PEN';
       default:
         return st.length > 4 ? st.substring(0, 4) : st;
     }
@@ -384,20 +427,36 @@ class MiHorarioPage extends GetView<MiHorarioController> {
   }
 
   // =========================
-  //   DIALOG OBSERVACION
+  // DIALOG: EDITAR DÍA
   // =========================
-  Future<void> _dialogObservacion(
+  Future<void> _dialogEditarDia(
     BuildContext context,
     DiaHorarioSemana dia,
   ) async {
-    final tec = TextEditingController(text: (dia.observacion ?? '').trim());
+    final isToday = controller.isToday(dia.fecha);
+    final tipoDia = dia.tipoDia.toUpperCase().trim();
 
-    final st =
-        (dia.estadoHoraAcumulada ?? 'NO').toString().trim().toUpperCase();
-    bool solicita = st == 'SOLICITUD';
+    // Observación (motivo HA)
+    final teObs = TextEditingController(text: (dia.observacion ?? '').trim());
 
+    // HA
+    final stHA = dia.estadoHoraAcumulada.toUpperCase().trim();
+    bool solicitaHA = stHA == 'SOLICITUD';
     final baseH = dia.numHorasAcumuladas ?? 1;
-    int horas = baseH < 1 ? 1 : (baseH > 15 ? 15 : baseH);
+    int horasHA = baseH < 1 ? 1 : (baseH > 15 ? 15 : baseH);
+
+    // Justificaciones
+    final teAtraso = TextEditingController(
+      text: (dia.justAtrasoMotivo ?? '').trim(),
+    );
+    final teSalida = TextEditingController(
+      text: (dia.justSalidaMotivo ?? '').trim(),
+    );
+
+    final puedeObsHA =
+        isToday && dia.tieneTurno && tipoDia == 'NORMAL' && stHA != 'APROBADO';
+    final puedeJustA = controller.puedeSolicitarJustAtraso(dia);
+    final puedeJustS = controller.puedeSolicitarJustSalida(dia);
 
     await showDialog(
       context: context,
@@ -405,49 +464,128 @@ class MiHorarioPage extends GetView<MiHorarioController> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Observación'),
+              title: Text(
+                _capitalize(
+                  DateFormat('EEEE dd/MM', 'es_EC').format(dia.fecha),
+                ),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // =====================
+                    // OBS + HA (solo HOY)
+                    // =====================
+                    if (puedeObsHA) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Novedad',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: teObs,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          hintText: 'Escribe un motivo...',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      CheckboxListTile(
+                        value: solicitaHA,
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Solicitar horas acumuladas'),
+                        onChanged: (v) {
+                          setState(() {
+                            solicitaHA = v ?? false;
+                            if (!solicitaHA) horasHA = 1;
+                          });
+                        },
+                      ),
+                      if (solicitaHA) ...[
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<int>(
+                          value: horasHA,
+                          decoration: const InputDecoration(
+                            labelText: 'Número de horas (1-15)',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: List.generate(
+                            15,
+                            (i) => DropdownMenuItem(
+                              value: i + 1,
+                              child: Text('${i + 1}'),
+                            ),
+                          ),
+                          onChanged: (v) => setState(() => horasHA = v ?? 1),
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                    ] else ...[
+                      // Si no puede editar obs/HA, igual mostramos info
+                      if (isToday)
+                        Text(
+                          stHA == 'APROBADO'
+                              ? '⚠️ No se puede editar observación/HA: ya está APROBADO'
+                              : 'ℹ️ Observación/HA solo se edita HOY y en día NORMAL.',
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                      if (isToday) const SizedBox(height: 12),
+                    ],
+
+                    // =====================
+                    // JUSTIFICACIÓN ATRASO
+                    // =====================
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Motivo atraso',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     TextField(
-                      controller: tec,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'Escribe una novedad...',
-                        border: OutlineInputBorder(),
+                      controller: teAtraso,
+                      enabled: puedeJustA,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        hintText:
+                            puedeJustA
+                                ? 'Describe el motivo del atraso...'
+                                : 'No disponible (pendiente/aprobada o no aplica)',
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    CheckboxListTile(
-                      value: solicita,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Solicitud horas acumuladas'),
-                      onChanged: (v) {
-                        setState(() {
-                          solicita = v ?? false;
-                          if (!solicita) horas = 1;
-                        });
-                      },
-                    ),
-                    if (solicita) ...[
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<int>(
-                        value: horas,
-                        decoration: const InputDecoration(
-                          labelText: 'Número de horas (1-15)',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: List.generate(
-                          15,
-                          (i) => DropdownMenuItem(
-                            value: i + 1,
-                            child: Text('${i + 1}'),
-                          ),
-                        ),
-                        onChanged: (v) => setState(() => horas = v ?? 1),
+
+                    // =====================
+                    // JUSTIFICACIÓN SALIDA
+                    // =====================
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Motivo salida temprana',
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: teSalida,
+                      enabled: puedeJustS,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        hintText:
+                            puedeJustS
+                                ? 'Describe el motivo de la salida...'
+                                : 'No disponible (pendiente/aprobada o no aplica)',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -459,11 +597,15 @@ class MiHorarioPage extends GetView<MiHorarioController> {
                 FilledButton(
                   onPressed: () async {
                     Navigator.pop(context);
-                    await controller.guardarObservacionHoy(
+
+                    await controller.guardarEdicionDia(
                       dia: dia,
-                      texto: tec.text,
-                      solicitarHoraAcumulada: solicita,
-                      numHorasAcumuladas: solicita ? horas : null,
+                      obsHorasAcum: teObs.text,
+                      solicitarHoraAcumulada: puedeObsHA ? solicitaHA : false,
+                      numHorasAcumuladas:
+                          (puedeObsHA && solicitaHA) ? horasHA : null,
+                      motivoAtraso: teAtraso.text,
+                      motivoSalida: teSalida.text,
                     );
                   },
                   child: const Text('Guardar'),
@@ -478,4 +620,9 @@ class MiHorarioPage extends GetView<MiHorarioController> {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  String _fmtHora(DateTime? dt, DateFormat dfTime) {
+    if (dt == null) return '-';
+    return dfTime.format(dt.toLocal());
+  }
 }

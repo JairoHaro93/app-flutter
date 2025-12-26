@@ -1,4 +1,6 @@
 class DiaHorarioSemana {
+  final int? id;
+
   final DateTime fecha;
   final bool tieneTurno;
 
@@ -17,16 +19,29 @@ class DiaHorarioSemana {
   final String? observacion;
   final String? sucursal;
 
-  // ✅ NUEVO: tipo de día
   // NORMAL | DEVOLUCION | VACACIONES | PERMISO
   final String tipoDia;
 
-  // ✅ HORA ACUMULADA
   // NO | SOLICITUD | APROBADO | RECHAZADO
   final String estadoHoraAcumulada;
   final int? numHorasAcumuladas;
 
+  // ==========================
+  // ✅ JUSTIFICACIONES TURNO
+  // ==========================
+  // NO | PENDIENTE | APROBADA | RECHAZADA
+  final String justAtrasoEstado;
+  final String? justAtrasoMotivo;
+  final int? justAtrasoMinutos;
+  final int? justAtrasoJefeId;
+
+  final String justSalidaEstado;
+  final String? justSalidaMotivo;
+  final int? justSalidaMinutos;
+  final int? justSalidaJefeId;
+
   DiaHorarioSemana({
+    required this.id,
     required this.fecha,
     required this.tieneTurno,
     required this.estadoAsistencia,
@@ -42,6 +57,16 @@ class DiaHorarioSemana {
     this.tipoDia = 'NORMAL',
     this.estadoHoraAcumulada = 'NO',
     this.numHorasAcumuladas,
+
+    // justificaciones
+    this.justAtrasoEstado = 'NO',
+    this.justAtrasoMotivo,
+    this.justAtrasoMinutos,
+    this.justAtrasoJefeId,
+    this.justSalidaEstado = 'NO',
+    this.justSalidaMotivo,
+    this.justSalidaMinutos,
+    this.justSalidaJefeId,
   });
 
   factory DiaHorarioSemana.fromJson(Map<String, dynamic> json) {
@@ -54,7 +79,6 @@ class DiaHorarioSemana {
       if (v == null) return null;
       final s = v.toString().trim();
       if (s.isEmpty) return null;
-      // backend suele mandar ISO con Z: "2025-12-17T13:02:27.000Z"
       return DateTime.tryParse(s)?.toLocal();
     }
 
@@ -70,19 +94,20 @@ class DiaHorarioSemana {
       if (v == null) return false;
       if (v is bool) return v;
       final s = v.toString().trim().toLowerCase();
-      return s == '1' || s == 'true' || s == 'yes';
+      return s == '1' || s == 'true' || s == 'yes' || s == 'si';
     }
 
-    final tipo =
-        (json['tipo_dia'] ?? json['tipoDia'] ?? 'NORMAL')
-            .toString()
-            .trim()
-            .toUpperCase();
+    String normUpper(dynamic v, {String def = 'NO'}) {
+      final s = (v ?? def).toString().trim().toUpperCase();
+      return s.isEmpty ? def : s;
+    }
 
-    final estadoHA =
-        (json['estado_hora_acumulada'] ?? 'NO').toString().trim().toUpperCase();
+    final tipo = normUpper(json['tipo_dia'] ?? json['tipoDia'], def: 'NORMAL');
+    final estadoHA = normUpper(json['estado_hora_acumulada'], def: 'NO');
 
     return DiaHorarioSemana(
+      id: toInt(json['id']),
+
       fecha: parseFechaLocal(json['fecha'].toString()),
       tieneTurno: toBool(json['tiene_turno']),
       estadoAsistencia: (json['estado_asistencia'] ?? 'SIN_TURNO').toString(),
@@ -100,12 +125,20 @@ class DiaHorarioSemana {
       observacion: json['observacion']?.toString(),
       sucursal: json['sucursal']?.toString(),
 
-      // ✅ NUEVO
-      tipoDia: tipo.isEmpty ? 'NORMAL' : tipo,
-
-      // ✅ HORA ACUMULADA (normalizado)
-      estadoHoraAcumulada: estadoHA.isEmpty ? 'NO' : estadoHA,
+      tipoDia: tipo,
+      estadoHoraAcumulada: estadoHA,
       numHorasAcumuladas: toInt(json['num_horas_acumuladas']),
+
+      // ✅ justificaciones
+      justAtrasoEstado: normUpper(json['just_atraso_estado'], def: 'NO'),
+      justAtrasoMotivo: json['just_atraso_motivo']?.toString(),
+      justAtrasoMinutos: toInt(json['just_atraso_minutos']),
+      justAtrasoJefeId: toInt(json['just_atraso_jefe_id']),
+
+      justSalidaEstado: normUpper(json['just_salida_estado'], def: 'NO'),
+      justSalidaMotivo: json['just_salida_motivo']?.toString(),
+      justSalidaMinutos: toInt(json['just_salida_minutos']),
+      justSalidaJefeId: toInt(json['just_salida_jefe_id']),
     );
   }
 }

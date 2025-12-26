@@ -20,7 +20,6 @@ class MiHorarioController extends GetxController {
   final dias = <DiaHorarioSemana>[].obs;
 
   String _ymd(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
-
   DateTime _onlyDate(DateTime d) => DateTime(d.year, d.month, d.day);
 
   DateTime _parseYmdLocal(String ymd) {
@@ -37,18 +36,15 @@ class MiHorarioController extends GetxController {
   // ==========================
   // Navegación semanal
   // ==========================
-
   Future<void> cargarSemanaPorFecha(DateTime anyDay) async {
     try {
       cargando.value = true;
 
       final resp = await provider.getMiHorarioSemana(fecha: _ymd(anyDay));
 
-      // ✅ Usar el rango real del backend para pintar el header
       desde.value = _parseYmdLocal(resp.desde);
       hasta.value = _parseYmdLocal(resp.hasta);
 
-      // ✅ 7 días exactos
       dias.assignAll(resp.data);
     } catch (e) {
       SnackbarService.error('No se pudo cargar la semana: $e');
@@ -70,7 +66,6 @@ class MiHorarioController extends GetxController {
   // ==========================
   // Helpers de día
   // ==========================
-
   bool isPastDay(DateTime day) {
     final d = _onlyDate(day);
     final today = _onlyDate(DateTime.now());
@@ -92,14 +87,12 @@ class MiHorarioController extends GetxController {
   // ==========================
   // ✅ Helpers hora programada (para HOY)
   // ==========================
-
   int? _hhmmToMinutes(String? hhmm) {
     if (hhmm == null) return null;
     final s = hhmm.trim();
     if (s.isEmpty) return null;
 
-    // acepta "HH:mm" o "HH:mm:ss"
-    final parts = s.split(':');
+    final parts = s.split(':'); // "HH:mm" o "HH:mm:ss"
     if (parts.length < 2) return null;
 
     final hh = int.tryParse(parts[0]);
@@ -112,7 +105,6 @@ class MiHorarioController extends GetxController {
   bool _isBeforeHoraEntradaProgHoy(DiaHorarioSemana d) {
     if (!isToday(d.fecha)) return false;
 
-    // ⚠️ usa el campo real de tu modelo: horaEntradaProg
     final progMin = _hhmmToMinutes(d.horaEntradaProg);
     if (progMin == null) return false;
 
@@ -124,24 +116,11 @@ class MiHorarioController extends GetxController {
   // ==========================
   // ✅ Estado UI (ASISTENCIA) - LÓGICA OFICIAL
   // ==========================
-  //
-  // Importante:
-  // - En DB normalmente guardas "SIN_MARCA"
-  // - En UI:
-  //     * Futuro => PROGRAMADO
-  //     * Hoy ANTES de hora_entrada_prog y SIN_MARCA => PROGRAMADO
-  //     * Hoy DESPUÉS de hora_entrada_prog y SIN_MARCA => SIN MARCA
-  //     * Pasado y SIN_MARCA => FALTA
-  //
-  // - tipo_dia (DEVOLUCION/VACACIONES/PERMISO) PISA el estado.
-  //
   String estadoUI(DiaHorarioSemana d) {
     if (!d.tieneTurno) return 'SIN TURNO';
 
-    // 1) ✅ tipo_dia pisa el estado
-    // ⚠️ SI tu modelo NO se llama tipoDia, cambia SOLO ESTA LÍNEA por el nombre real.
+    // tipo_dia pisa el estado
     final tipo = d.tipoDia.toString().trim().toUpperCase();
-
     if (tipo.isNotEmpty && tipo != 'NORMAL') {
       if (tipo == 'DEVOLUCION') return 'DEVOLUCIÓN';
       if (tipo == 'VACACIONES') return 'VACACIONES';
@@ -149,21 +128,18 @@ class MiHorarioController extends GetxController {
       return tipo;
     }
 
-    final base = (d.estadoAsistencia).toString().trim().toUpperCase();
+    final base = d.estadoAsistencia.toString().trim().toUpperCase();
 
     final tieneEntrada = d.horaEntradaReal != null;
     final tieneSalida = d.horaSalidaReal != null;
 
-    // 2) ✅ Futuro => PROGRAMADO
+    // Futuro => PROGRAMADO
     if (isFutureDay(d.fecha)) return 'PROGRAMADO';
 
-    // 3) ✅ Hoy
+    // Hoy
     if (isToday(d.fecha)) {
       if (tieneEntrada && !tieneSalida) return 'EN CURSO';
 
-      // SIN_MARCA hoy:
-      // - antes de la hora prog => PROGRAMADO
-      // - después => SIN MARCA
       if (base.isEmpty || base == 'SIN_MARCA' || base == 'SIN MARCA') {
         return _isBeforeHoraEntradaProgHoy(d) ? 'PROGRAMADO' : 'SIN MARCA';
       }
@@ -175,7 +151,7 @@ class MiHorarioController extends GetxController {
       return base;
     }
 
-    // 4) ✅ Pasado
+    // Pasado
     if (isPastDay(d.fecha)) {
       if (base.isEmpty || base == 'SIN_MARCA' || base == 'SIN MARCA') {
         return 'FALTA';
@@ -190,74 +166,141 @@ class MiHorarioController extends GetxController {
   // ==========================
   // Horas acumuladas (helpers)
   // ==========================
-
   bool horaAcumuladaVisible(DiaHorarioSemana d) {
-    final st = (d.estadoHoraAcumulada ?? 'NO').toString().toUpperCase().trim();
+    final st = d.estadoHoraAcumulada.toUpperCase().trim();
     return st != 'NO';
   }
 
   String horaAcumuladaLabel(DiaHorarioSemana d) {
-    final st = (d.estadoHoraAcumulada ?? 'NO').toString().toUpperCase().trim();
+    final st = d.estadoHoraAcumulada.toUpperCase().trim();
     final h = d.numHorasAcumuladas;
 
-    if (st == 'SOLICITUD') {
+    if (st == 'SOLICITUD')
       return 'H.A. SOLICITUD${h != null ? ' · ${h}h' : ''}';
-    }
-    if (st == 'APROBADO') {
-      return 'H.A. APROBADO${h != null ? ' · ${h}h' : ''}';
-    }
-    if (st == 'RECHAZADO') {
+    if (st == 'APROBADO') return 'H.A. APROBADO${h != null ? ' · ${h}h' : ''}';
+    if (st == 'RECHAZADO')
       return 'H.A. RECHAZADO${h != null ? ' · ${h}h' : ''}';
-    }
     return 'H.A. $st${h != null ? ' · ${h}h' : ''}';
   }
 
-  String horaAcumuladaColorKey(DiaHorarioSemana d) {
-    final st = (d.estadoHoraAcumulada ?? 'NO').toString().toUpperCase().trim();
-    if (st == 'SOLICITUD') return 'sol';
-    if (st == 'APROBADO') return 'ok';
-    if (st == 'RECHAZADO') return 'rech';
-    return 'none';
+  // ==========================
+  // ✅ Permisos UI (editar / solicitar)
+  // ==========================
+  bool puedeEditarDia(DiaHorarioSemana d) {
+    if (!d.tieneTurno) return false;
+    final tipo = d.tipoDia.toUpperCase().trim();
+    if (tipo != 'NORMAL') return false;
+    // si HA APROBADO, backend bloquea observación HOY
+    // pero igual podría permitir justificaciones en otros días;
+    // el page decide qué mostrar según HOY/PASADO.
+    return true;
+  }
+
+  bool puedeSolicitarJustAtraso(DiaHorarioSemana d) {
+    if (!d.tieneTurno || d.id == null) return false;
+
+    // ✅ Regla: solo el mismo día
+    if (!isToday(d.fecha)) return false;
+
+    final tipo = d.tipoDia.toUpperCase().trim();
+    if (tipo != 'NORMAL') return false;
+
+    final st =
+        d.justAtrasoEstado
+            .toUpperCase()
+            .trim(); // NO | PENDIENTE | APROBADA | RECHAZADA
+    return st == 'NO' || st == 'RECHAZADA';
+  }
+
+  bool puedeSolicitarJustSalida(DiaHorarioSemana d) {
+    if (!d.tieneTurno || d.id == null) return false;
+
+    // ✅ Regla: solo el mismo día
+    if (!isToday(d.fecha)) return false;
+
+    final tipo = d.tipoDia.toUpperCase().trim();
+    if (tipo != 'NORMAL') return false;
+
+    final st = d.justSalidaEstado.toUpperCase().trim();
+    return st == 'NO' || st == 'RECHAZADA';
   }
 
   // ==========================
-  // Guardar observación (HOY)
+  // ✅ Guardar edición (HOY + JUSTIFICACIONES)
   // ==========================
-
-  Future<void> guardarObservacionHoy({
+  Future<void> guardarEdicionDia({
     required DiaHorarioSemana dia,
-    required String texto,
+    String? obsHorasAcum, // observación (motivo HA)
     required bool solicitarHoraAcumulada,
     int? numHorasAcumuladas,
+    String? motivoAtraso,
+    String? motivoSalida,
   }) async {
     try {
       cargando.value = true;
 
-      if (solicitarHoraAcumulada &&
-          (numHorasAcumuladas == null || numHorasAcumuladas < 1)) {
-        SnackbarService.warning('Ingrese cuántas horas acumuladas solicita');
-        return;
+      final tipoDia = dia.tipoDia.toUpperCase().trim();
+      if (tipoDia != 'NORMAL') {
+        throw Exception('No se puede modificar: el día es $tipoDia');
       }
 
-      await provider.putObservacionHoy(
-        observacion: texto.trim(),
-        solicitarHoraAcumulada: solicitarHoraAcumulada,
-        numHorasAcumuladas: solicitarHoraAcumulada ? numHorasAcumuladas : null,
-      );
+      // 1) Observación + solicitud HA (solo HOY)
+      if (isToday(dia.fecha)) {
+        final stHA = dia.estadoHoraAcumulada.toUpperCase().trim();
+        if (stHA == 'APROBADO') {
+          throw Exception(
+            'No se puede modificar: la solicitud ya está APROBADA',
+          );
+        }
 
-      // ✅ recargar la semana para reflejar estado actualizado
+        if (solicitarHoraAcumulada) {
+          final n = numHorasAcumuladas ?? 0;
+          if (n < 1 || n > 15) {
+            SnackbarService.warning('Horas acumuladas debe ser 1 a 15');
+            return;
+          }
+        }
+
+        await provider.putObservacionHoy(
+          observacion: (obsHorasAcum ?? '').trim(),
+          solicitarHoraAcumulada: solicitarHoraAcumulada,
+          numHorasAcumuladas:
+              solicitarHoraAcumulada ? numHorasAcumuladas : null,
+        );
+      }
+
+      // ✅ AQUÍ MISMO (ANTES de justificaciones)
+      final motA = (motivoAtraso ?? '').trim();
+      final motS = (motivoSalida ?? '').trim();
+
+      if (!isToday(dia.fecha) && (motA.isNotEmpty || motS.isNotEmpty)) {
+        throw Exception(
+          'Las justificaciones solo se pueden solicitar el mismo día.',
+        );
+      }
+
+      // 2) Justificación atraso
+      if (motA.isNotEmpty) {
+        if (!puedeSolicitarJustAtraso(dia)) {
+          throw Exception('No se puede solicitar atraso...');
+        }
+        await provider.postJustificacionAtraso(turnoId: dia.id!, motivo: motA);
+      }
+
+      // 3) Justificación salida
+      if (motS.isNotEmpty) {
+        if (!puedeSolicitarJustSalida(dia)) {
+          throw Exception('No se puede solicitar salida...');
+        }
+        await provider.postJustificacionSalida(turnoId: dia.id!, motivo: motS);
+      }
+
       await cargarSemanaPorFecha(dia.fecha);
-
       SnackbarService.success('Guardado');
     } catch (e) {
       SnackbarService.error('No se pudo guardar: $e');
     } finally {
       cargando.value = false;
     }
-  }
-
-  bool puedeEditarObservacion(DiaHorarioSemana d) {
-    final st = d.estadoHoraAcumulada.toString().trim().toUpperCase();
-    return st != 'APROBADO';
   }
 }
